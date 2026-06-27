@@ -1,19 +1,21 @@
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from uuid import UUID
+from geoalchemy2.shape import to_shape
 
 
 class FuelStateOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     grade: str
     available: bool
     price: float | None
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
-
 
 class StationOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     brand: str | None
     aliases: list[str]
@@ -23,43 +25,25 @@ class StationOut(BaseModel):
     fuel_states: list[FuelStateOut] = []
     location: dict | None = None
 
-    class Config:
-        from_attributes = True
-
-    @model_validator(mode="before")
     @classmethod
-    def extract_location(cls, data):
-        # Handle ORM object — extract location geometry into dict
-        if hasattr(data, "__dict__") or hasattr(data, "location"):
-            raw_loc = getattr(data, "location", None)
-            if raw_loc is not None:
-                try:
-                    from geoalchemy2.shape import to_shape
-                    shape = to_shape(raw_loc)
-                    coords = list(shape.coords)[0]  # (lon, lat)
-                    # Inject into the data dict for pydantic to pick up
-                    # We need to return a dict-compatible representation
-                    # Since pydantic v2 "before" validators on ORM objects:
-                    # convert to dict manually
-                    pass
-                except Exception:
-                    pass
-        return data
-
-    @classmethod
-    def model_validate(cls, obj, *args, **kwargs):
-        """Override to handle PostGIS geometry serialization."""
-        instance = super().model_validate(obj, *args, **kwargs)
-        # Extract location from ORM object after base validation
-        if hasattr(obj, "location") and obj.location is not None:
+    def from_orm(cls, station) -> "StationOut":
+        loc = None
+        if station.location is not None:
             try:
-                from geoalchemy2.shape import to_shape
-                shape = to_shape(obj.location)
-                coords = list(shape.coords)[0]  # (lon, lat)
-                instance.location = {"coordinates": list(coords)}
+                shape = to_shape(station.location)
+                loc = {"coordinates": list(shape.coords[0])}
             except Exception:
-                instance.location = None
-        return instance
+                loc = None
+        return cls(
+            id=station.id,
+            brand=station.brand,
+            aliases=station.aliases or [],
+            city=station.city,
+            region=station.region,
+            last_report_at=station.last_report_at,
+            fuel_states=[FuelStateOut.model_validate(fs) for fs in station.fuel_states],
+            location=loc,
+        )
 
 
 class ReportIn(BaseModel):
@@ -84,6 +68,8 @@ class HeatmapRegion(BaseModel):
 
 
 class SummaryItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     station_alias: str
     brand: str | None
     fuel_states: list[FuelStateOut]

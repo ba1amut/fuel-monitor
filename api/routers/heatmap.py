@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select, func, case
+from sqlalchemy import select, func, case, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from db.database import get_db
 from db.models import Station, StationFuelState
@@ -14,19 +14,23 @@ async def get_heatmap(
     grade: str | None = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
+    # Build join condition — move grade filter into JOIN to keep outer join semantics
+    join_cond = StationFuelState.station_id == Station.id
+    if grade:
+        join_cond = and_(join_cond, StationFuelState.grade == grade)
+
     q = (
         select(
             Station.region,
-            func.count(Station.id).label("total"),
+            func.count(func.distinct(Station.id)).label("total"),
             func.sum(case((StationFuelState.available == False, 1), else_=0)).label("deficit"),
         )
-        .join(StationFuelState, isouter=True)
+        .join(StationFuelState, join_cond, isouter=True)
         .group_by(Station.region)
     )
     if brand:
         q = q.where(Station.brand == brand)
-    if grade:
-        q = q.where(StationFuelState.grade == grade)
+
     result = await db.execute(q)
     rows = result.all()
     return [

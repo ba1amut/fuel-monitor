@@ -29,7 +29,13 @@ async def list_stations(
         q = q.join(StationFuelState).where(StationFuelState.grade == grade)
     result = await db.execute(q)
     stations = result.scalars().unique().all()
-    return [StationOut.model_validate(s) for s in stations]
+
+    # Filter fuel_states in-memory when grade filter provided to avoid leaking other grades
+    if grade:
+        for s in stations:
+            s.fuel_states = [fs for fs in s.fuel_states if fs.grade == grade]
+
+    return [StationOut.from_orm(s).model_dump() for s in stations]
 
 
 @router.get("/{station_id}", response_model=StationOut)
@@ -40,4 +46,4 @@ async def get_station(station_id: UUID, db: AsyncSession = Depends(get_db)):
     station = result.scalar_one_or_none()
     if station is None:
         raise HTTPException(status_code=404, detail="Station not found")
-    return StationOut.model_validate(station)
+    return StationOut.from_orm(station).model_dump()
