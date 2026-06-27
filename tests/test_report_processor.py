@@ -19,6 +19,7 @@ async def test_process_text_report_success():
     mock_session = MagicMock()
     mock_session.add = MagicMock()
     mock_session.commit = AsyncMock()
+    mock_session.flush = AsyncMock()
     mock_session.execute = AsyncMock(return_value=MagicMock())
     mock_session.refresh = AsyncMock()
 
@@ -49,6 +50,7 @@ async def test_process_text_report_parse_failed():
     mock_session = MagicMock()
     mock_session.add = MagicMock()
     mock_session.commit = AsyncMock()
+    mock_session.flush = AsyncMock()
     mock_session.execute = AsyncMock(return_value=MagicMock())
     mock_session.refresh = AsyncMock()
 
@@ -83,6 +85,7 @@ async def test_process_voice_report_transcribes_first():
     mock_session = MagicMock()
     mock_session.add = MagicMock()
     mock_session.commit = AsyncMock()
+    mock_session.flush = AsyncMock()
     mock_session.execute = AsyncMock(return_value=MagicMock())
     mock_session.refresh = AsyncMock()
 
@@ -119,6 +122,7 @@ async def test_process_photo_report():
     mock_session = MagicMock()
     mock_session.add = MagicMock()
     mock_session.commit = AsyncMock()
+    mock_session.flush = AsyncMock()
     mock_session.execute = AsyncMock(return_value=MagicMock())
     mock_session.refresh = AsyncMock()
 

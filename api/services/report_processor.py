@@ -70,12 +70,14 @@ async def process_report(
         source=source,
     )
     session.add(report)
-    await session.commit()
+    await session.flush()  # assign report.id without committing
     await session.refresh(report)
 
     if station and not parsed.parse_failed:
         await _upsert_fuel_states(session, station.id, parsed.fuels, report.id)
         await _update_station_stats(session, station)
+
+    await session.commit()
 
     station_name = (station.aliases[0] if station and station.aliases else None)
     return ProcessResult(
@@ -120,10 +122,8 @@ async def _upsert_fuel_states(session: AsyncSession, station_id, fuels: list[Fue
                   "last_report_id": report_id, "updated_at": now},
         )
         await session.execute(stmt)
-    await session.commit()
 
 
 async def _update_station_stats(session: AsyncSession, station: Station):
     station.last_report_at = datetime.now(timezone.utc)
     station.report_count = (station.report_count or 0) + 1
-    await session.commit()

@@ -48,6 +48,9 @@ async def handle_text_report(message: types.Message):
 @router.message(F.photo)
 async def handle_photo_report(message: types.Message, bot: Bot):
     file = await bot.get_file(message.photo[-1].file_id)
+    if file.file_size and file.file_size > 5_000_000:
+        await message.answer("Фото слишком большое. Пришли фото меньше 5 МБ.")
+        return
     image_bytes = await _download_tg_file(bot, file.file_path)
     async with httpx.AsyncClient(timeout=30) as client:
         r = await client.post(f"{API_URL}/api/reports", data={
@@ -62,6 +65,9 @@ async def handle_photo_report(message: types.Message, bot: Bot):
 @router.message(F.voice)
 async def handle_voice_report(message: types.Message, bot: Bot):
     file = await bot.get_file(message.voice.file_id)
+    if file.file_size and file.file_size > 5_000_000:
+        await message.answer("Голосовое сообщение слишком длинное.")
+        return
     voice_bytes = await _download_tg_file(bot, file.file_path)
     async with httpx.AsyncClient(timeout=30) as client:
         r = await client.post(f"{API_URL}/api/reports", data={
