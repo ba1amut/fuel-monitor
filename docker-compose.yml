@@ -26,6 +26,8 @@ services:
     build: .
     command: python -m bot.main
     env_file: .env
+    ports:
+      - "8080:8080"
     depends_on:
       - api
 
@@ -40,6 +42,7 @@ services:
       - certbot_conf:/etc/letsencrypt
     depends_on:
       - api
+      - bot
 
 volumes:
   pgdata:
