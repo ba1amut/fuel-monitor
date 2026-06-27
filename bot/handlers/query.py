@@ -1,5 +1,6 @@
 import os
 import httpx
+from datetime import datetime, timezone
 from aiogram import Router, types
 from aiogram.filters import Command
 
@@ -45,6 +46,9 @@ async def cmd_city(message: types.Message):
     city = parts[1].strip()
     async with httpx.AsyncClient(timeout=15) as client:
         r = await client.get(f"{API_URL}/api/summary", params={"city": city})
+    if not r.is_success:
+        await message.answer(f"Не удалось получить данные по городу {city}.")
+        return
     items = r.json()
     if not items:
         await message.answer(f"По городу {city} данных пока нет.")
@@ -62,7 +66,6 @@ async def cmd_city(message: types.Message):
 
 
 def _ago(iso: str) -> str:
-    from datetime import datetime, timezone
     dt = datetime.fromisoformat(iso.replace("Z", "+00:00"))
     diff = int((datetime.now(timezone.utc) - dt).total_seconds() / 60)
     if diff < 60:
