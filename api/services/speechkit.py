@@ -8,7 +8,7 @@ STT_URL = "https://stt.api.cloud.yandex.net/speech/v1/stt:recognize"
 
 
 async def transcribe_voice(ogg_bytes: bytes) -> str:
-    async with httpx.AsyncClient(timeout=30) as client:
+    async with httpx.AsyncClient(timeout=60) as client:
         r = await client.post(
             STT_URL,
             headers={"Authorization": f"Api-Key {YANDEX_API_KEY}"},

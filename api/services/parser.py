@@ -1,6 +1,7 @@
 import json
 import base64
 import os
+import logging
 from dataclasses import dataclass, field
 
 import httpx
@@ -48,7 +49,7 @@ class ParsedReport:
 
 
 async def _call_yandex_gpt(messages: list[dict]) -> str:
-    async with httpx.AsyncClient(timeout=30) as client:
+    async with httpx.AsyncClient(timeout=60) as client:
         r = await client.post(
             GPT_URL,
             headers={"Authorization": f"Api-Key {YANDEX_API_KEY}"},
@@ -106,7 +107,8 @@ def _parse_response(raw: str) -> ParsedReport:
             confidence=confidence,
             parse_failed=confidence < CONFIDENCE_THRESHOLD,
         )
-    except Exception:
+    except Exception as exc:
+        logging.warning("Failed to parse GPT response: %s | raw=%r", exc, raw)
         return ParsedReport(
             station_alias=None, brand=None, fuels=[], confidence=0.0, parse_failed=True
         )
