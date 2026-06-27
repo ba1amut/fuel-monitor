@@ -4,5 +4,3 @@ import os
 os.environ.setdefault(
     "DATABASE_URL", "postgresql+asyncpg://fm:changeme@localhost/fuelmonitor"
 )
-
-import pytest  # noqa: E402, F401
