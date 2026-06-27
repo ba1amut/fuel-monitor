@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-from sqlalchemy import select
 from db.models import Report, Station, StationFuelState, User
 from api.services.parser import parse_text, parse_photo, FuelItem, ParsedReport
 from api.services.speechkit import transcribe_voice as _transcribe
@@ -45,7 +44,7 @@ async def process_report(
         parsed = await parse_text(raw_text)
 
     location = None
-    if user_lat and user_lon:
+    if user_lat is not None and user_lon is not None:
         location = f"SRID=4326;POINT({user_lon} {user_lat})"
 
     station = None
@@ -88,13 +87,19 @@ async def process_report(
 
 
 async def _upsert_user(session: AsyncSession, telegram_user_id: int):
-    result = await session.execute(select(User).where(User.telegram_user_id == telegram_user_id))
-    user = result.scalar_one_or_none()
-    if user:
-        user.report_count += 1
-        user.last_seen_at = datetime.now(timezone.utc)
-    else:
-        session.add(User(telegram_user_id=telegram_user_id, report_count=1))
+    stmt = pg_insert(User).values(
+        telegram_user_id=telegram_user_id,
+        report_count=1,
+        first_seen_at=datetime.now(timezone.utc),
+        last_seen_at=datetime.now(timezone.utc),
+    ).on_conflict_do_update(
+        index_elements=["telegram_user_id"],
+        set_={
+            "report_count": User.report_count + 1,
+            "last_seen_at": datetime.now(timezone.utc),
+        },
+    )
+    await session.execute(stmt)
     await session.commit()
 
 
