@@ -4,5 +4,6 @@ cd /opt/fuel-monitor
 git pull
 docker compose build
 docker compose up -d
+sleep 5
 docker compose exec api alembic upgrade head
 echo "✅ Deployed successfully"
