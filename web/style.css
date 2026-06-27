@@ -1,0 +1,10 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, sans-serif; display: flex; flex-direction: column; height: 100vh; }
+#toolbar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: #1a1a2e; color: #fff; z-index: 1000; flex-shrink: 0; }
+.logo { font-weight: 700; font-size: 1.1rem; margin-right: 8px; }
+#toolbar select, #toolbar button { padding: 6px 10px; border-radius: 6px; border: none; cursor: pointer; font-size: 0.9rem; }
+#btn-refresh { background: #4CAF50; color: white; }
+#map { flex: 1; }
+.popup-title { font-weight: 700; font-size: 1rem; margin-bottom: 6px; }
+.fuel-row { display: flex; justify-content: space-between; gap: 16px; padding: 2px 0; font-size: 0.85rem; }
+.fuel-ago { color: #888; font-size: 0.75rem; }
