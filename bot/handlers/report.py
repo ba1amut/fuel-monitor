@@ -36,6 +36,37 @@ def _format_fuels(fuels: list[dict]) -> str:
     return "\n".join(lines) if lines else "данные не извлечены"
 
 
+async def _fetch_full_station(station_id: str) -> dict | None:
+    """Fetch complete station data including all fuel_states. Returns None on error."""
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            r = await client.get(f"{API_URL}/api/stations/{station_id}")
+            if r.is_success:
+                return r.json()
+    except Exception:
+        pass
+    return None
+
+
+def _format_full_station(station: dict) -> str:
+    name = (station.get("aliases") or [None])[0] or station.get("brand") or "АЗС"
+    city = station.get("city") or ""
+    header = f"📍 {name}" + (f" · {city}" if city else "")
+    fuel_states = station.get("fuel_states") or []
+    if not fuel_states:
+        return header + "\nДанных о топливе нет"
+    lines = [header]
+    for fs in fuel_states:
+        grade = fs.get("grade", "?")
+        if fs.get("available"):
+            price = fs.get("price")
+            price_str = f" — {price} руб" if price else ""
+            lines.append(f"✅ {grade}{price_str}")
+        else:
+            lines.append(f"❌ {grade} — нет")
+    return "\n".join(lines)
+
+
 async def _reply_result(message: types.Message, data: dict):
     if data.get("parse_failed"):
         await message.answer("Не смог разобрать сообщение. Укажи: название АЗС, марку топлива, есть/нет?")
@@ -43,6 +74,33 @@ async def _reply_result(message: types.Message, data: dict):
     fuels_text = _format_fuels(data.get("fuels", []))
     station = data.get("station_name") or "АЗС"
     await message.answer(f"Принято! АЗС: {station}\n{fuels_text}\n\nСпасибо за помощь 🙏")
+
+
+async def _handle_report_response(message: types.Message, r_data: dict):
+    """Common logic after receiving r_data from POST /api/reports."""
+    if r_data.get("parse_failed"):
+        await message.answer("Не смог разобрать сообщение. Укажи: название АЗС, марку топлива, есть/нет?")
+        return
+
+    station_id = r_data.get("station_id")
+
+    if station_id:
+        full = await _fetch_full_station(station_id)
+        if full:
+            reply_text = _format_full_station(full)
+        else:
+            reply_text = _format_fuels(r_data.get("fuels", []))
+    else:
+        reply_text = _format_fuels(r_data.get("fuels", []))
+
+    await message.answer(reply_text)
+
+    if station_id:
+        _pending_location[message.from_user.id] = station_id
+        await message.answer(
+            "Укажи местоположение АЗС — это поможет отобразить её на карте.",
+            reply_markup=_location_keyboard(),
+        )
 
 
 @router.message(F.text & ~F.text.startswith("/"))
@@ -56,13 +114,7 @@ async def handle_text_report(message: types.Message):
         await message.answer("Ошибка сервера. Попробуй позже.")
         return
     r_data = r.json()
-    await _reply_result(message, r_data)
-    if r_data.get("station_id"):
-        _pending_location[message.from_user.id] = r_data["station_id"]
-        await message.answer(
-            "Укажи местоположение АЗС — это поможет отобразить её на карте.",
-            reply_markup=_location_keyboard(),
-        )
+    await _handle_report_response(message, r_data)
 
 
 @router.message(F.photo)
@@ -80,13 +132,7 @@ async def handle_photo_report(message: types.Message, bot: Bot):
         await message.answer("Ошибка сервера. Попробуй позже.")
         return
     r_data = r.json()
-    await _reply_result(message, r_data)
-    if r_data.get("station_id"):
-        _pending_location[message.from_user.id] = r_data["station_id"]
-        await message.answer(
-            "Укажи местоположение АЗС — это поможет отобразить её на карте.",
-            reply_markup=_location_keyboard(),
-        )
+    await _handle_report_response(message, r_data)
 
 
 @router.message(F.voice)
@@ -104,13 +150,7 @@ async def handle_voice_report(message: types.Message, bot: Bot):
         await message.answer("Ошибка сервера. Попробуй позже.")
         return
     r_data = r.json()
-    await _reply_result(message, r_data)
-    if r_data.get("station_id"):
-        _pending_location[message.from_user.id] = r_data["station_id"]
-        await message.answer(
-            "Укажи местоположение АЗС — это поможет отобразить её на карте.",
-            reply_markup=_location_keyboard(),
-        )
+    await _handle_report_response(message, r_data)
 
 
 @router.message(F.location)
