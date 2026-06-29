@@ -57,10 +57,16 @@ async def update_station_location(
     body: LocationUpdateIn,
     db: AsyncSession = Depends(get_db),
 ):
-    station = await db.get(Station, station_id)
+    result = await db.execute(
+        select(Station).options(selectinload(Station.fuel_states)).where(Station.id == station_id)
+    )
+    station = result.scalar_one_or_none()
     if station is None:
         raise HTTPException(status_code=404, detail="Station not found")
     station.location = from_shape(Point(body.lon, body.lat), srid=4326)
     await db.commit()
-    await db.refresh(station)
-    return StationOut.from_orm(station)
+    result = await db.execute(
+        select(Station).options(selectinload(Station.fuel_states)).where(Station.id == station_id)
+    )
+    station = result.scalar_one()
+    return StationOut.from_orm(station).model_dump()

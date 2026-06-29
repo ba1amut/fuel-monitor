@@ -10,9 +10,11 @@ from db.database import get_db
 # --- Dependency override helpers ---
 
 async def _override_get_db_none():
-    """Session that returns None for db.get() — simulates station not found."""
+    """Session whose execute() returns empty result — simulates station not found."""
     sess = AsyncMock()
-    sess.get = AsyncMock(return_value=None)
+    empty_result = MagicMock()
+    empty_result.scalar_one_or_none = MagicMock(return_value=None)
+    sess.execute = AsyncMock(return_value=empty_result)
     yield sess
 
 
@@ -86,9 +88,11 @@ async def test_patch_station_location_success():
 
     async def _override_get_db_found():
         sess = AsyncMock()
-        sess.get = AsyncMock(return_value=mock_station)
+        found_result = MagicMock()
+        found_result.scalar_one_or_none = MagicMock(return_value=mock_station)
+        found_result.scalar_one = MagicMock(return_value=mock_station)
+        sess.execute = AsyncMock(return_value=found_result)
         sess.commit = AsyncMock()
-        sess.refresh = AsyncMock()
         yield sess
 
     app.dependency_overrides[get_db] = _override_get_db_found
