@@ -1,4 +1,5 @@
 import os
+import logging
 import httpx
 from aiogram import Router, Bot, F, types
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
@@ -121,14 +122,20 @@ async def handle_location(message: types.Message, bot: Bot):
         return
     lat = message.location.latitude
     lon = message.location.longitude
-    async with httpx.AsyncClient(timeout=10) as client:
-        r = await client.patch(
-            f"{API_URL}/api/stations/{station_id}/location",
-            json={"lat": lat, "lon": lon},
-        )
-    if r.is_success:
-        await message.answer("Местоположение АЗС сохранено на карте.",
-                             reply_markup=ReplyKeyboardRemove())
-    else:
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.patch(
+                f"{API_URL}/api/stations/{station_id}/location",
+                json={"lat": lat, "lon": lon},
+            )
+        if r.is_success:
+            await message.answer("Местоположение АЗС сохранено на карте.",
+                                 reply_markup=ReplyKeyboardRemove())
+        else:
+            logging.error("PATCH location failed: %s %s", r.status_code, r.text)
+            await message.answer("Не удалось сохранить геолокацию, попробуй позже.",
+                                 reply_markup=ReplyKeyboardRemove())
+    except httpx.HTTPError as exc:
+        logging.error("PATCH location network error: %s", exc)
         await message.answer("Не удалось сохранить геолокацию, попробуй позже.",
                              reply_markup=ReplyKeyboardRemove())
