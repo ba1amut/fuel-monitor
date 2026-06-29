@@ -91,3 +91,25 @@ def test_parse_response_strips_plain_fences():
     result = _parse_response(raw)
     assert not result.parse_failed
     assert result.confidence == 0.8
+
+
+@pytest.mark.asyncio
+async def test_parse_text_extracts_city():
+    mock_response = (
+        '{"station_alias": "Октан около озера", "brand": "независимая", '
+        '"city": "Ессентуки", '
+        '"fuels": [{"grade": "АИ-95", "available": true, "price": 79.5}], '
+        '"confidence": 0.9}'
+    )
+    with patch("api.services.parser._call_yandex_gpt", new_callable=AsyncMock) as mock_gpt:
+        mock_gpt.return_value = mock_response
+        result = await parse_text("Ессентуки АЗС октан около озера: 95 - 79.5 руб")
+    assert result.city == "Ессентуки"
+    assert not result.parse_failed
+
+
+def test_parse_response_city_none_when_missing():
+    raw = '{"station_alias": "Лукойл", "brand": "Лукойл", "fuels": [], "confidence": 0.8}'
+    result = _parse_response(raw)
+    assert result.city is None
+    assert not result.parse_failed

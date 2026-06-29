@@ -53,7 +53,7 @@ async def process_report(
             session,
             brand=parsed.brand,
             alias=parsed.station_alias,
-            city=None,
+            city=parsed.city,
             region=None,
             location=location,
         )

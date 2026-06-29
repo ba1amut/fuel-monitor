@@ -17,6 +17,7 @@ SYSTEM_PROMPT = """Ты парсер отчётов об АЗС. Извлеки 
 {
   "station_alias": "название или ориентир АЗС или null",
   "brand": "сеть АЗС (Лукойл/Роснефть/Газпромнефть/Татнефть/независимая/null)",
+  "city": "город из сообщения или null",
   "fuels": [{"grade": "АИ-92|АИ-95|АИ-100|ДТ|ГАЗ", "available": true/false, "price": число или null}],
   "confidence": число от 0 до 1
 }
@@ -44,6 +45,7 @@ class FuelItem:
 class ParsedReport:
     station_alias: str | None
     brand: str | None
+    city: str | None
     fuels: list[FuelItem] = field(default_factory=list)
     confidence: float = 0.0
     parse_failed: bool = False
@@ -108,6 +110,7 @@ def _parse_response(raw: str) -> ParsedReport:
         return ParsedReport(
             station_alias=data.get("station_alias"),
             brand=data.get("brand"),
+            city=data.get("city"),
             fuels=fuels,
             confidence=confidence,
             parse_failed=confidence < CONFIDENCE_THRESHOLD,
@@ -115,7 +118,7 @@ def _parse_response(raw: str) -> ParsedReport:
     except Exception as exc:
         logging.warning("Failed to parse GPT response: %s | raw=%r", exc, raw)
         return ParsedReport(
-            station_alias=None, brand=None, fuels=[], confidence=0.0, parse_failed=True
+            station_alias=None, brand=None, city=None, fuels=[], confidence=0.0, parse_failed=True
         )
 
 
