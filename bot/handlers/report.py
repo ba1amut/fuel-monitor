@@ -67,13 +67,10 @@ def _format_full_station(station: dict) -> str:
     return "\n".join(lines)
 
 
-async def _reply_result(message: types.Message, data: dict):
-    if data.get("parse_failed"):
-        await message.answer("Не смог разобрать сообщение. Укажи: название АЗС, марку топлива, есть/нет?")
-        return
-    fuels_text = _format_fuels(data.get("fuels", []))
-    station = data.get("station_name") or "АЗС"
-    await message.answer(f"Принято! АЗС: {station}\n{fuels_text}\n\nСпасибо за помощь 🙏")
+def _format_fuels_fallback(r_data: dict) -> str:
+    station_name = r_data.get("station_name") or "АЗС"
+    fuels_text = _format_fuels(r_data.get("fuels", []))
+    return f"Принято! АЗС: {station_name}\n{fuels_text}\n\nСпасибо за помощь 🙏"
 
 
 async def _handle_report_response(message: types.Message, r_data: dict):
@@ -86,12 +83,9 @@ async def _handle_report_response(message: types.Message, r_data: dict):
 
     if station_id:
         full = await _fetch_full_station(station_id)
-        if full:
-            reply_text = _format_full_station(full)
-        else:
-            reply_text = _format_fuels(r_data.get("fuels", []))
+        reply_text = _format_full_station(full) if full else _format_fuels_fallback(r_data)
     else:
-        reply_text = _format_fuels(r_data.get("fuels", []))
+        reply_text = _format_fuels_fallback(r_data)
 
     await message.answer(reply_text)
 
