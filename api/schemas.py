@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime
 from uuid import UUID
 from geoalchemy2.shape import to_shape
@@ -58,6 +58,7 @@ class ReportResult(BaseModel):
     station_name: str | None
     parse_failed: bool
     fuels: list[dict] = []
+    station_id: str | None = None
 
 
 class HeatmapRegion(BaseModel):
@@ -73,3 +74,8 @@ class SummaryItem(BaseModel):
     station_alias: str
     brand: str | None
     fuel_states: list[FuelStateOut]
+
+
+class LocationUpdateIn(BaseModel):
+    lat: float = Field(..., ge=-90.0, le=90.0)
+    lon: float = Field(..., ge=-180.0, le=180.0)

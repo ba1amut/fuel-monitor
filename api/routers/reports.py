@@ -29,4 +29,5 @@ async def create_report(
         station_name=result.station_name,
         parse_failed=result.parse_failed,
         fuels=[{"grade": f.grade, "available": f.available, "price": f.price} for f in result.fuels],
+        station_id=result.station_id,
     )

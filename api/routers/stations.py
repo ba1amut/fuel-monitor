@@ -2,9 +2,11 @@ from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
+from geoalchemy2.shape import from_shape
+from shapely.geometry import Point
 from db.database import get_db
 from db.models import Station, StationFuelState
-from api.schemas import StationOut
+from api.schemas import StationOut, LocationUpdateIn
 from uuid import UUID
 
 router = APIRouter(prefix="/api/stations", tags=["stations"])
@@ -47,3 +49,18 @@ async def get_station(station_id: UUID, db: AsyncSession = Depends(get_db)):
     if station is None:
         raise HTTPException(status_code=404, detail="Station not found")
     return StationOut.from_orm(station).model_dump()
+
+
+@router.patch("/{station_id}/location", response_model=StationOut)
+async def update_station_location(
+    station_id: UUID,
+    body: LocationUpdateIn,
+    db: AsyncSession = Depends(get_db),
+):
+    station = await db.get(Station, station_id)
+    if station is None:
+        raise HTTPException(status_code=404, detail="Station not found")
+    station.location = from_shape(Point(body.lon, body.lat), srid=4326)
+    await db.commit()
+    await db.refresh(station)
+    return StationOut.from_orm(station)

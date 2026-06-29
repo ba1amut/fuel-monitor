@@ -16,6 +16,7 @@ class ProcessResult:
     fuels: list[FuelItem] = field(default_factory=list)
     parse_failed: bool = False
     message: str = ""
+    station_id: str | None = None
 
 
 async def process_report(
@@ -85,6 +86,7 @@ async def process_report(
         station_name=station_name,
         fuels=parsed.fuels,
         parse_failed=parsed.parse_failed,
+        station_id=str(station.id) if station else None,
     )
 
 
