@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fuel Monitor — Указать место АЗС</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; display: flex; flex-direction: column; height: 100dvh; }
+    #header { padding: 12px 16px; background: #1a1a2e; color: #fff; font-size: 15px; }
+    #header .name { font-weight: 600; }
+    #header .hint { font-size: 12px; color: #aaa; margin-top: 2px; }
+    #map { flex: 1; }
+    #footer { padding: 12px 16px; background: #fff; border-top: 1px solid #e0e0e0; display: flex; gap: 10px; align-items: center; }
+    #save-btn {
+      flex: 1; padding: 12px; background: #4CAF50; color: #fff;
+      border: none; border-radius: 8px; font-size: 15px; font-weight: 600;
+      cursor: pointer; display: none;
+    }
+    #save-btn:disabled { background: #9e9e9e; cursor: default; }
+    #status { font-size: 14px; color: #555; }
+    #done { display: none; text-align: center; padding: 40px 20px; font-size: 16px; color: #2e7d32; }
+  </style>
+</head>
+<body>
+  <div id="header">
+    <div class="name" id="station-name">АЗС</div>
+    <div class="hint">Тапните на карте, чтобы указать точное место</div>
+  </div>
+  <div id="map"></div>
+  <div id="footer">
+    <span id="status">Тапните на карте</span>
+    <button id="save-btn" onclick="save()">Сохранить место</button>
+  </div>
+  <div id="done">✅ Местоположение АЗС сохранено.<br>Можно закрыть эту страницу.</div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const CITY_CENTROIDS = {
+      "москва": [55.7558, 37.6173], "санкт-петербург": [59.9343, 30.3351],
+      "новосибирск": [54.9833, 82.8964], "екатеринбург": [56.8389, 60.6057],
+      "казань": [55.8304, 49.0661], "краснодар": [45.0360, 38.9760],
+      "ростов-на-дону": [47.2357, 39.7015], "ставрополь": [45.0428, 41.9734],
+      "ессентуки": [44.0490, 42.8610], "пятигорск": [44.0490, 43.0596],
+      "сочи": [43.5855, 39.7231], "уфа": [54.7388, 55.9721],
+      "самара": [53.2038, 50.1606], "пермь": [58.0105, 56.2502],
+      "тюмень": [57.1522, 65.5272], "омск": [54.9885, 73.3242],
+      "красноярск": [56.0097, 92.8519], "иркутск": [52.2855, 104.2890],
+      "хабаровск": [48.4814, 135.0721], "владивосток": [43.1155, 131.8855],
+    };
+
+    const params = new URLSearchParams(location.search);
+    const stationId = params.get("station");
+
+    const map = L.map("map").setView([62, 95], 4);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "© OpenStreetMap"
+    }).addTo(map);
+
+    let marker = null;
+    let pickedLat = null, pickedLon = null;
+
+    async function init() {
+      if (!stationId) {
+        document.getElementById("status").textContent = "Ссылка недействительна";
+        return;
+      }
+      try {
+        const r = await fetch(`/api/stations/${stationId}`);
+        if (r.ok) {
+          const s = await r.json();
+          const name = (s.aliases || [])[0] || s.brand || "АЗС";
+          document.getElementById("station-name").textContent = name + (s.city ? ` · ${s.city}` : "");
+          const city = (s.city || "").toLowerCase();
+          if (CITY_CENTROIDS[city]) {
+            map.setView(CITY_CENTROIDS[city], 13);
+          } else if (s.location) {
+            const [lon, lat] = s.location.coordinates;
+            map.setView([lat, lon], 15);
+          }
+        }
+      } catch {}
+    }
+
+    map.on("click", function(e) {
+      pickedLat = e.latlng.lat;
+      pickedLon = e.latlng.lng;
+      if (marker) marker.setLatLng(e.latlng);
+      else marker = L.marker(e.latlng).addTo(map);
+      document.getElementById("save-btn").style.display = "block";
+      document.getElementById("status").textContent =
+        `${pickedLat.toFixed(5)}, ${pickedLon.toFixed(5)}`;
+    });
+
+    async function save() {
+      const btn = document.getElementById("save-btn");
+      btn.disabled = true;
+      btn.textContent = "Сохраняю…";
+      try {
+        const r = await fetch(`/api/stations/${stationId}/location`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ lat: pickedLat, lon: pickedLon }),
+        });
+        if (r.ok) {
+          document.getElementById("map").style.display = "none";
+          document.getElementById("footer").style.display = "none";
+          document.getElementById("header").style.display = "none";
+          document.getElementById("done").style.display = "block";
+        } else {
+          btn.disabled = false;
+          btn.textContent = "Сохранить место";
+          document.getElementById("status").textContent = "Ошибка, попробуй ещё раз";
+        }
+      } catch {
+        btn.disabled = false;
+        btn.textContent = "Сохранить место";
+        document.getElementById("status").textContent = "Нет сети, попробуй ещё раз";
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
