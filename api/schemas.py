@@ -24,9 +24,13 @@ class StationOut(BaseModel):
     last_report_at: datetime | None
     fuel_states: list[FuelStateOut] = []
     location: dict | None = None
+    is_approximate: bool = False
 
     @classmethod
     def from_orm(cls, station) -> "StationOut":
+        from api.services.city_centroids import get_centroid
+
+        is_approximate = False
         loc = None
         if station.location is not None:
             try:
@@ -34,6 +38,12 @@ class StationOut(BaseModel):
                 loc = {"coordinates": list(shape.coords[0])}
             except Exception:
                 loc = None
+        if loc is None:
+            centroid = get_centroid(station.city)
+            if centroid:
+                lat, lon = centroid
+                loc = {"coordinates": [lon, lat]}
+                is_approximate = True
         return cls(
             id=station.id,
             brand=station.brand,
@@ -43,6 +53,7 @@ class StationOut(BaseModel):
             last_report_at=station.last_report_at,
             fuel_states=[FuelStateOut.model_validate(fs) for fs in station.fuel_states],
             location=loc,
+            is_approximate=is_approximate,
         )
 
 

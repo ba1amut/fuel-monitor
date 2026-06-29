@@ -10,6 +10,20 @@ map.addLayer(markers);
 const greenIcon = L.divIcon({className:"", html:'<div style="width:12px;height:12px;background:#4CAF50;border-radius:50%;border:2px solid white"></div>'});
 const redIcon   = L.divIcon({className:"", html:'<div style="width:12px;height:12px;background:#f44336;border-radius:50%;border:2px solid white"></div>'});
 const greyIcon  = L.divIcon({className:"", html:'<div style="width:12px;height:12px;background:#9e9e9e;border-radius:50%;border:2px solid white"></div>'});
+const blueIcon  = L.divIcon({
+    className: "",
+    html: '<div style="width:12px;height:12px;border-radius:50%;background:#3388ff;opacity:0.6;border:2px solid #fff"></div>',
+    iconSize: [12, 12],
+    iconAnchor: [6, 6],
+});
+
+function pickIcon(station) {
+    if (station.is_approximate) return blueIcon;
+    const states = station.fuel_states || [];
+    if (states.length === 0) return greyIcon;
+    const hasAny = states.some(f => f.available);
+    return hasAny ? greenIcon : redIcon;
+}
 
 function ago(iso) {
   const diff = Math.floor((Date.now() - new Date(iso)) / 60000);
@@ -21,20 +35,17 @@ function ago(iso) {
 function buildPopup(s) {
   const name = s.aliases[0] || "АЗС";
   const brand = s.brand || "";
+  const approxNote = s.is_approximate ? '<br><em style="color:#888">⚠ позиция по городу</em>' : '';
   let html = `<div class="popup-title">${brand} ${name}</div>`;
   for (const fs of s.fuel_states) {
     const status = fs.available ? "✅" : "❌";
     const price  = fs.available && fs.price ? ` ${fs.price}₽/л` : fs.available ? " (цена не указана)" : "";
     html += `<div class="fuel-row"><span>${fs.grade}: ${status}${price}</span><span class="fuel-ago">${ago(fs.updated_at)}</span></div>`;
   }
+  html += approxNote;
   return html;
 }
 
-function stationColor(s) {
-  if (!s.fuel_states.length) return greyIcon;
-  const hasAny = s.fuel_states.some(f => f.available);
-  return hasAny ? greenIcon : redIcon;
-}
 
 async function loadStations() {
   const brand = document.getElementById("filter-brand").value;
@@ -53,7 +64,7 @@ async function loadStations() {
     const loc = s.location;
     if (!loc) continue;
     const [lon, lat] = loc.coordinates;
-    const m = L.marker([lat, lon], {icon: stationColor(s)});
+    const m = L.marker([lat, lon], {icon: pickIcon(s)});
     m.bindPopup(buildPopup(s));
     markers.addLayer(m);
   }
