@@ -36,7 +36,8 @@ function buildPopup(s) {
   const name = s.aliases[0] || "АЗС";
   const brand = s.brand || "";
   const approxNote = s.is_approximate ? '<br><em style="color:#888">⚠ позиция по городу</em>' : '';
-  let html = `<div class="popup-title">${brand} ${name}</div>`;
+  const shortId = String(s.id).slice(0, 8);
+  let html = `<div class="popup-title">${brand} ${name}</div><div style="font-size:10px;color:#bbb;margin-bottom:4px" title="${s.id}">${shortId}…</div>`;
   for (const fs of s.fuel_states) {
     const status = fs.available ? "✅" : "❌";
     const price  = fs.available && fs.price ? ` ${fs.price}₽/л` : fs.available ? " (цена не указана)" : "";

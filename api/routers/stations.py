@@ -1,13 +1,16 @@
-from fastapi import APIRouter, Depends, Query, HTTPException
-from sqlalchemy import select
+import os
+from fastapi import APIRouter, Depends, Query, HTTPException, Header
+from sqlalchemy import select, update, delete
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from geoalchemy2.shape import from_shape
 from shapely.geometry import Point
 from db.database import get_db
-from db.models import Station, StationFuelState
+from db.models import Station, StationFuelState, Report
 from api.schemas import StationOut, LocationUpdateIn
 from uuid import UUID
+
+ADMIN_KEY = os.getenv("ADMIN_KEY", "")
 
 router = APIRouter(prefix="/api/stations", tags=["stations"])
 
@@ -70,3 +73,63 @@ async def update_station_location(
     )
     station = result.scalar_one()
     return StationOut.from_orm(station).model_dump()
+
+
+@router.post("/{source_id}/merge-into/{target_id}", response_model=StationOut)
+async def merge_stations(
+    source_id: UUID,
+    target_id: UUID,
+    x_admin_key: str | None = Header(default=None),
+    db: AsyncSession = Depends(get_db),
+):
+    if not ADMIN_KEY or x_admin_key != ADMIN_KEY:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    if source_id == target_id:
+        raise HTTPException(status_code=400, detail="source and target must differ")
+
+    result = await db.execute(
+        select(Station).options(selectinload(Station.fuel_states))
+        .where(Station.id.in_([source_id, target_id]))
+    )
+    stations = {s.id: s for s in result.scalars().all()}
+    if source_id not in stations:
+        raise HTTPException(status_code=404, detail="Source station not found")
+    if target_id not in stations:
+        raise HTTPException(status_code=404, detail="Target station not found")
+
+    source = stations[source_id]
+    target = stations[target_id]
+
+    # Merge aliases (deduplicated)
+    merged_aliases = list(dict.fromkeys((target.aliases or []) + (source.aliases or [])))
+    target.aliases = merged_aliases
+
+    # Copy location from source if target has none
+    if target.location is None and source.location is not None:
+        target.location = source.location
+
+    # Re-assign reports
+    await db.execute(
+        update(Report).where(Report.station_id == source_id).values(station_id=target_id)
+    )
+
+    # Merge fuel_states: upsert source states into target (keep newer by updated_at)
+    for src_fs in source.fuel_states:
+        existing = next((fs for fs in target.fuel_states if fs.grade == src_fs.grade), None)
+        if existing is None:
+            src_fs.station_id = target_id
+        elif src_fs.updated_at and existing.updated_at and src_fs.updated_at > existing.updated_at:
+            existing.available = src_fs.available
+            existing.price = src_fs.price
+            existing.updated_at = src_fs.updated_at
+            await db.execute(delete(StationFuelState).where(StationFuelState.id == src_fs.id))
+        else:
+            await db.execute(delete(StationFuelState).where(StationFuelState.id == src_fs.id))
+
+    await db.execute(delete(Station).where(Station.id == source_id))
+    await db.commit()
+
+    result = await db.execute(
+        select(Station).options(selectinload(Station.fuel_states)).where(Station.id == target_id)
+    )
+    return StationOut.from_orm(result.scalar_one()).model_dump()
