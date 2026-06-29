@@ -1,4 +1,5 @@
 import json
+import re
 import base64
 import os
 import logging
@@ -96,6 +97,10 @@ async def _call_ocr(image_bytes: bytes) -> str:
 
 
 def _parse_response(raw: str) -> ParsedReport:
+    raw = raw.strip()
+    if raw.startswith("```"):
+        raw = re.sub(r'^```[a-z]*\s*', '', raw)
+        raw = re.sub(r'\s*```$', '', raw).strip()
     try:
         data = json.loads(raw)
         fuels = [FuelItem(**f) for f in data.get("fuels", [])]

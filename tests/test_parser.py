@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock, patch
 
-from api.services.parser import parse_text, parse_photo, ParsedReport, FuelItem
+from api.services.parser import parse_text, parse_photo, ParsedReport, FuelItem, _parse_response
 
 
 @pytest.mark.asyncio
@@ -77,3 +77,17 @@ async def test_parse_photo_two_step_pipeline():
     assert "АИ-95" in grades
     assert "ДТ" in grades
     assert all(f.available for f in result.fuels)
+
+
+def test_parse_response_strips_code_fences():
+    raw = '```json\n{"station_alias": "test", "brand": null, "fuels": [], "confidence": 0.9}\n```'
+    result = _parse_response(raw)
+    assert not result.parse_failed
+    assert result.confidence == 0.9
+
+
+def test_parse_response_strips_plain_fences():
+    raw = '```\n{"station_alias": null, "brand": null, "fuels": [], "confidence": 0.8}\n```'
+    result = _parse_response(raw)
+    assert not result.parse_failed
+    assert result.confidence == 0.8
