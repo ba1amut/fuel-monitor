@@ -2,20 +2,22 @@ import os
 import logging
 import httpx
 from aiogram import Router, Bot, F, types
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardRemove
+from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
 
 router = Router()
 API_URL = os.getenv("API_URL", "http://api:8000")
 WEB_URL = os.getenv("WEBHOOK_HOST", "https://fuel.weatherpath.ru")
 
+# user_id -> station_id — ожидание геолокации от кнопки "Поделиться"
+_pending_location: dict[int, str] = {}
 
-def _location_keyboard(station_id: str) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(
-            text="🗺 Указать место на карте",
-            url=f"{WEB_URL}/pick.html?station={station_id}",
-        )
-    ]])
+
+def _location_keyboard() -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text="📍 Поделиться геолокацией", request_location=True)]],
+        resize_keyboard=True,
+        one_time_keyboard=True,
+    )
 
 
 async def _download_tg_file(bot: Bot, file_path: str) -> bytes:
@@ -89,9 +91,14 @@ async def _handle_report_response(message: types.Message, r_data: dict):
     await message.answer(reply_text)
 
     if station_id:
+        map_url = f"{WEB_URL}/pick.html?station={station_id}"
+        _pending_location[message.from_user.id] = station_id
         await message.answer(
-            "Укажи точное место АЗС на карте:",
-            reply_markup=_location_keyboard(station_id),
+            f"Укажи место АЗС — это поможет отобразить её на карте.\n"
+            f"📍 Кнопка ниже — если ты сейчас там\n"
+            f"🗺 <a href='{map_url}'>Выбрать на карте</a> — если пишешь по памяти",
+            reply_markup=_location_keyboard(),
+            parse_mode="HTML",
         )
 
 
@@ -145,3 +152,25 @@ async def handle_voice_report(message: types.Message, bot: Bot):
     await _handle_report_response(message, r_data)
 
 
+@router.message(F.location)
+async def handle_location(message: types.Message):
+    station_id = _pending_location.pop(message.from_user.id, None)
+    if not station_id:
+        await message.answer("Спасибо!", reply_markup=ReplyKeyboardRemove())
+        return
+    lat = message.location.latitude
+    lon = message.location.longitude
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.patch(
+                f"{API_URL}/api/stations/{station_id}/location",
+                json={"lat": lat, "lon": lon},
+            )
+        if r.is_success:
+            await message.answer("Местоположение АЗС сохранено.", reply_markup=ReplyKeyboardRemove())
+        else:
+            logging.error("PATCH location failed: %s %s", r.status_code, r.text)
+            await message.answer("Не удалось сохранить, попробуй на карте.", reply_markup=ReplyKeyboardRemove())
+    except httpx.HTTPError as exc:
+        logging.error("PATCH location network error: %s", exc)
+        await message.answer("Не удалось сохранить, попробуй на карте.", reply_markup=ReplyKeyboardRemove())
