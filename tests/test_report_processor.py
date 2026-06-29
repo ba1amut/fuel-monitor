@@ -9,6 +9,7 @@ async def test_process_text_report_success():
     parsed = ParsedReport(
         station_alias="Лукойл на Ленинском",
         brand="Лукойл",
+        city=None,
         fuels=[FuelItem(grade="АИ-95", available=True, price=79.0)],
         confidence=0.9,
         parse_failed=False,
@@ -43,6 +44,7 @@ async def test_process_text_report_parse_failed():
     parsed = ParsedReport(
         station_alias=None,
         brand=None,
+        city=None,
         fuels=[],
         confidence=0.1,
         parse_failed=True,
@@ -75,6 +77,7 @@ async def test_process_voice_report_transcribes_first():
     parsed = ParsedReport(
         station_alias="Газпромнефть",
         brand="Газпромнефть",
+        city=None,
         fuels=[FuelItem(grade="АИ-92", available=True, price=55.0)],
         confidence=0.85,
         parse_failed=False,
@@ -112,6 +115,7 @@ async def test_process_photo_report():
     parsed = ParsedReport(
         station_alias="Роснефть",
         brand="Роснефть",
+        city=None,
         fuels=[FuelItem(grade="ДТ", available=True, price=68.5)],
         confidence=0.8,
         parse_failed=False,
