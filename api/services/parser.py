@@ -31,7 +31,8 @@ OCR_SYSTEM_PROMPT = """Ты парсер текста с ценового таб
 4. Если марка упомянута, но цены в той же строке нет — available: false, price: null.
 5. Игнорируй маркетинговые названия: ЭКТО, PULSAR, ULTIMATE, G-Drive и подобные — это суббренды, не марки топлива.
 6. Не выдумывай данные которых нет в тексте.
-Ответь ТОЛЬКО валидным JSON: {"station_alias": "...", "brand": "...", "fuels": [...], "confidence": 0.9}"""
+Ответь ТОЛЬКО валидным JSON без пояснений. Поля топлива: "grade" (не "fuel_type"), "available", "price".
+Пример: {"station_alias": "Октан", "brand": "независимая", "city": null, "fuels": [{"grade": "АИ-95", "available": true, "price": 79.5}], "confidence": 0.9}"""
 
 
 @dataclass
@@ -105,7 +106,15 @@ def _parse_response(raw: str) -> ParsedReport:
         raw = re.sub(r'\s*```$', '', raw).strip()
     try:
         data = json.loads(raw)
-        fuels = [FuelItem(**f) for f in data.get("fuels", [])]
+        raw_fuels = data.get("fuels", [])
+        fuels = [
+            FuelItem(
+                grade=f.get("grade") or f.get("fuel_type") or f.get("name") or "?",
+                available=f.get("available", False),
+                price=f.get("price"),
+            )
+            for f in raw_fuels
+        ]
         confidence = float(data.get("confidence", 0))
         return ParsedReport(
             station_alias=data.get("station_alias"),
