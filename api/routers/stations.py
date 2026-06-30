@@ -1,3 +1,4 @@
+import logging
 import os
 from fastapi import APIRouter, Depends, Query, HTTPException, Header
 from sqlalchemy import select, update, delete, cast, func
@@ -9,6 +10,7 @@ from shapely.geometry import Point
 from db.database import get_db
 from db.models import Station, StationFuelState, Report
 from api.schemas import StationOut, LocationUpdateIn, NearbyStationOut
+from api.services.geocoder import reverse_geocode
 from uuid import UUID
 
 ADMIN_KEY = os.getenv("ADMIN_KEY", "")
@@ -100,6 +102,11 @@ async def update_station_location(
     if station is None:
         raise HTTPException(status_code=404, detail="Station not found")
     station.location = from_shape(Point(body.lon, body.lat), srid=4326)
+    if station.city is None:
+        try:
+            station.city = await reverse_geocode(body.lat, body.lon)
+        except Exception:
+            logging.warning("reverse_geocode failed for station %s", station_id)
     await db.commit()
     result = await db.execute(
         select(Station).options(selectinload(Station.fuel_states)).where(Station.id == station_id)

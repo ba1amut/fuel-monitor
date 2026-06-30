@@ -1,3 +1,4 @@
+import uuid
 import pytest
 from httpx import AsyncClient, ASGITransport
 from unittest.mock import patch, AsyncMock, MagicMock
@@ -144,6 +145,74 @@ async def test_get_heatmap_with_data():
     assert data[0]["total"] == 10
     assert data[0]["deficit"] == 3
     assert data[0]["deficit_ratio"] == 0.3
+
+
+# --- /api/summary ---
+
+def _make_station_mock(city=None):
+    station_id = uuid.uuid4()
+    m = MagicMock()
+    m.id = station_id
+    m.brand = None
+    m.aliases = []
+    m.city = city
+    m.region = None
+    m.last_report_at = None
+    m.fuel_states = []
+    m.location = None
+    return m
+
+
+def _make_patch_db(mock_station):
+    """DB mock that returns mock_station on both execute calls (select before and after update)."""
+    first_result = MagicMock()
+    first_result.scalar_one_or_none.return_value = mock_station
+    second_result = MagicMock()
+    second_result.scalar_one.return_value = mock_station
+
+    async def _db():
+        sess = MagicMock()
+        sess.execute = AsyncMock(side_effect=[first_result, second_result])
+        sess.commit = AsyncMock()
+        yield sess
+
+    return _db
+
+
+@pytest.mark.asyncio
+async def test_patch_location_geocodes_city_when_none():
+    """PATCH /location should resolve city via reverse geocoding when station.city is None."""
+    mock_station = _make_station_mock(city=None)
+    app.dependency_overrides[get_db] = _make_patch_db(mock_station)
+
+    with patch("api.routers.stations.reverse_geocode", AsyncMock(return_value="Ессентуки")) as mock_geo:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+            r = await ac.patch(
+                f"/api/stations/{mock_station.id}/location",
+                json={"lat": 43.857, "lon": 44.041},
+            )
+
+    assert r.status_code == 200
+    mock_geo.assert_awaited_once_with(43.857, 44.041)
+    assert mock_station.city == "Ессентуки"
+
+
+@pytest.mark.asyncio
+async def test_patch_location_skips_geocode_when_city_set():
+    """PATCH /location must NOT call geocoder when station already has a city."""
+    mock_station = _make_station_mock(city="Москва")
+    app.dependency_overrides[get_db] = _make_patch_db(mock_station)
+
+    with patch("api.routers.stations.reverse_geocode", AsyncMock(return_value="другой город")) as mock_geo:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+            r = await ac.patch(
+                f"/api/stations/{mock_station.id}/location",
+                json={"lat": 55.75, "lon": 37.62},
+            )
+
+    assert r.status_code == 200
+    mock_geo.assert_not_awaited()
+    assert mock_station.city == "Москва"
 
 
 # --- /api/summary ---
