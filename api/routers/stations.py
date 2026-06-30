@@ -1,13 +1,14 @@
 import os
 from fastapi import APIRouter, Depends, Query, HTTPException, Header
-from sqlalchemy import select, update, delete
+from sqlalchemy import select, update, delete, cast, func, literal_column
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
+from geoalchemy2 import Geography
 from geoalchemy2.shape import from_shape
 from shapely.geometry import Point
 from db.database import get_db
 from db.models import Station, StationFuelState, Report
-from api.schemas import StationOut, LocationUpdateIn
+from api.schemas import StationOut, LocationUpdateIn, NearbyStationOut
 from uuid import UUID
 
 ADMIN_KEY = os.getenv("ADMIN_KEY", "")
@@ -41,6 +42,37 @@ async def list_stations(
             s.fuel_states = [fs for fs in s.fuel_states if fs.grade == grade]
 
     return [StationOut.from_orm(s).model_dump() for s in stations]
+
+
+@router.get("/nearby", response_model=list[NearbyStationOut])
+async def nearby_stations(
+    lat: float = Query(..., ge=-90.0, le=90.0),
+    lon: float = Query(..., ge=-180.0, le=180.0),
+    radius_km: float = Query(50.0, ge=0.1, le=200.0),
+    limit: int = Query(10, ge=1, le=20),
+    db: AsyncSession = Depends(get_db),
+):
+    point_geo = cast(
+        func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326), Geography
+    )
+    station_geo = cast(Station.location, Geography)
+    q = (
+        select(
+            Station,
+            func.ST_Distance(station_geo, point_geo).label("distance_m"),
+        )
+        .options(selectinload(Station.fuel_states))
+        .where(Station.location.isnot(None))
+        .where(func.ST_DWithin(station_geo, point_geo, radius_km * 1000))
+        .order_by(literal_column("distance_m"))
+        .limit(limit)
+    )
+    result = await db.execute(q)
+    rows = result.all()
+    return [
+        NearbyStationOut.from_nearby(station, distance_m / 1000).model_dump()
+        for station, distance_m in rows
+    ]
 
 
 @router.get("/{station_id}", response_model=StationOut)

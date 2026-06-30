@@ -107,3 +107,43 @@ async def test_patch_station_location_success():
     body = r.json()
     assert body["id"] == str(station_id)
     assert body["brand"] == "Лукойл"
+
+
+@pytest.mark.asyncio
+async def test_nearby_stations_lat_validation():
+    from api.main import app
+    from httpx import AsyncClient, ASGITransport
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        r = await client.get(
+            "/api/stations/nearby",
+            params={"lat": 999.0, "lon": 37.6, "radius_km": 10},
+        )
+    assert r.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_nearby_stations_no_results():
+    from api.main import app
+    from api.routers.stations import router as stations_router
+    from db.database import get_db
+    from httpx import AsyncClient, ASGITransport
+    from unittest.mock import AsyncMock, MagicMock
+
+    async def _override():
+        sess = AsyncMock()
+        mock_result = MagicMock()
+        mock_result.all = MagicMock(return_value=[])
+        sess.execute = AsyncMock(return_value=mock_result)
+        yield sess
+
+    app.dependency_overrides[get_db] = _override
+    try:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            r = await client.get(
+                "/api/stations/nearby",
+                params={"lat": 44.049, "lon": 42.861, "radius_km": 50},
+            )
+        assert r.status_code == 200
+        assert r.json() == []
+    finally:
+        app.dependency_overrides.pop(get_db, None)

@@ -57,6 +57,15 @@ class StationOut(BaseModel):
         )
 
 
+class NearbyStationOut(StationOut):
+    distance_km: float
+
+    @classmethod
+    def from_nearby(cls, station, distance_km: float) -> "NearbyStationOut":
+        base_dict = StationOut.from_orm(station).model_dump()
+        return cls(**base_dict, distance_km=round(distance_km, 1))
+
+
 class ReportIn(BaseModel):
     telegram_user_id: int
     text: str | None = None
