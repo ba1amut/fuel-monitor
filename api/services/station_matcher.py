@@ -14,15 +14,29 @@ async def find_or_create_station(
     region: str | None,
     location,  # WKT string or None
 ) -> Station:
-    if alias and city:
+    if alias:
+        # Step 1: search among stations with the same city
+        if city:
+            result = await session.execute(
+                select(Station).where(Station.city == city)
+            )
+            best_match = _find_best_match(alias, result.scalars().all())
+            if best_match:
+                if alias not in best_match.aliases:
+                    best_match.aliases = best_match.aliases + [alias]
+                await session.commit()
+                return best_match
+
+        # Step 2: fallback — search stations without city; backfill city on match
         result = await session.execute(
-            select(Station).where(Station.city == city)
+            select(Station).where(Station.city.is_(None))
         )
-        candidates = result.scalars().all()
-        best_match = _find_best_match(alias, candidates)
+        best_match = _find_best_match(alias, result.scalars().all())
         if best_match:
             if alias not in best_match.aliases:
                 best_match.aliases = best_match.aliases + [alias]
+            if city:
+                best_match.city = city
             await session.commit()
             return best_match
 
