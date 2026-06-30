@@ -1,0 +1,153 @@
+2026-06-27 00:52:21,326 INFO Start polling
+2026-06-27 00:52:23,129 INFO Run polling for bot @fuel_MonitorBot id=8893725272 - 'fuel_monitorBot'
+2026-06-27 00:53:33,381 INFO HTTP Request: GET https://api.telegram.org/file/bot8893725272:AAGaQ-19OJilmzirSUMCqDfsPCTclQQSHgE/photos/file_0.jpg "HTTP/1.1 200 OK"
+2026-06-27 00:53:38,926 INFO Image size for OCR: 375KB
+2026-06-27 00:54:00,846 INFO HTTP Request: POST https://ocr.api.cloud.yandex.net/ocr/v1/recognizeText "HTTP/1.1 200 OK"
+2026-06-27 00:54:00,856 INFO OCR result: 'À” ‘…À\n»ÕÕŒ¬¿÷»ŒÕÕŒ≈ “ŒœÀ»¬Œ\n› “Œ\n78.80\n› “Œ\n92 › “Œ\n95 › “Œ\n100\n› “Œ\n20.90'
+2026-06-27 00:54:04,810 INFO HTTP Request: POST https://llm.api.cloud.yandex.net/foundationModels/v1/completion "HTTP/1.1 200 OK"
+2026-06-27 00:54:05,105 INFO Update id=597883180 is handled. Duration 38718 ms by bot id=8893725272
+2026-06-27 00:55:12,931 INFO HTTP Request: GET https://api.telegram.org/file/bot8893725272:AAGaQ-19OJilmzirSUMCqDfsPCTclQQSHgE/photos/file_6.jpg "HTTP/1.1 200 OK"
+2026-06-27 00:55:17,321 INFO Image size for OCR: 131KB
+2026-06-27 00:55:27,986 INFO HTTP Request: POST https://ocr.api.cloud.yandex.net/ocr/v1/recognizeText "HTTP/1.1 200 OK"
+2026-06-27 00:55:27,992 INFO OCR result: 'TEBOIL\nTF50IL\ncaf\xe9\n92\n122.0\n95\n95\nTEBOIL\n126.0\nƒ“\n136.0\nTEBOIL+\n√¿«'
+2026-06-27 00:55:31,373 INFO HTTP Request: POST https://llm.api.cloud.yandex.net/foundationModels/v1/completion "HTTP/1.1 200 OK"
+2026-06-27 00:55:31,645 INFO Update id=597883181 is handled. Duration 23500 ms by bot id=8893725272
+2026-06-27 00:55:51,433 INFO HTTP Request: GET https://api.telegram.org/file/bot8893725272:AAGaQ-19OJilmzirSUMCqDfsPCTclQQSHgE/photos/file_7.jpg "HTTP/1.1 200 OK"
+2026-06-27 00:55:51,708 INFO Image size for OCR: 128KB
+2026-06-27 00:55:54,142 INFO HTTP Request: POST https://ocr.api.cloud.yandex.net/ocr/v1/recognizeText "HTTP/1.1 200 OK"
+2026-06-27 00:55:54,156 INFO OCR result: '00:36\n8.00\nKB/S\nVo _\nLTE\n48 %\n¿«—\nƒŒ¡–Œ\nœŒ∆¿ÀŒ¬¿“€\nA95 140,0\nA92 130,0\n‰Ú 97,00\n125,0\nÿ»ÕŒÃŒÕ“–” \nƒ“ — »ƒ ¿'
+2026-06-27 00:55:57,070 INFO HTTP Request: POST https://llm.api.cloud.yandex.net/foundationModels/v1/completion "HTTP/1.1 200 OK"
+2026-06-27 00:55:57,348 INFO Update id=597883182 is handled. Duration 7906 ms by bot id=8893725272
+2026-06-27 01:02:49,846 INFO HTTP Request: GET https://api.telegram.org/file/bot8893725272:AAGaQ-19OJilmzirSUMCqDfsPCTclQQSHgE/photos/file_8.jpg "HTTP/1.1 200 OK"
+2026-06-27 01:02:52,986 INFO Image size for OCR: 206KB
+2026-06-27 01:02:58,532 INFO HTTP Request: POST https://ocr.api.cloud.yandex.net/ocr/v1/recognizeText "HTTP/1.1 200 OK"
+2026-06-27 01:02:58,534 INFO OCR result: 'G2)\n100 10.72\n95 10.68\n92 1037'
+2026-06-27 01:03:03,470 INFO HTTP Request: POST https://llm.api.cloud.yandex.net/foundationModels/v1/completion "HTTP/1.1 200 OK"
+2026-06-27 01:03:03,734 INFO Update id=597883183 is handled. Duration 16609 ms by bot id=8893725272
+2026-06-27 01:04:23,797 INFO HTTP Request: GET https://api.telegram.org/file/bot8893725272:AAGaQ-19OJilmzirSUMCqDfsPCTclQQSHgE/photos/file_9.jpg "HTTP/1.1 200 OK"
+2026-06-27 01:04:28,050 INFO Image size for OCR: 109KB
+2026-06-27 01:04:31,952 INFO HTTP Request: POST https://ocr.api.cloud.yandex.net/ocr/v1/recognizeText "HTTP/1.1 200 OK"
+2026-06-27 01:04:31,962 INFO OCR result: "Gulag\n21 Ë˛Ì. ‚ 11:15\n73959 ËÁ 74095\n¿«— ‚ „. ¡Ó\nG'Drive\nGRINE\n95\n95\n92\n00:35\np\n99.95\n√¿«\n36.90\nP D\n´ﬂ ‚ ‡ıÛÂ, 101 Û·Î¸, ˇ ˜ÚÓ ÌÂÌÓÏ‡Î¸Ì‡ˇ?ª\n÷ÂÌ˚ Ì‡ ·ÂÌÁËÌ ‚ ÕËÊÌÂÏ ÕÓ‚„ÓÓ‰Â,\nÓ·ÒÚ‡ÌÓ‚Í‡.\n00:00 / 00:30"
+2026-06-27 01:04:46,918 INFO HTTP Request: POST https://llm.api.cloud.yandex.net/foundationModels/v1/completion "HTTP/1.1 200 OK"
+2026-06-27 01:04:47,196 INFO Update id=597883184 is handled. Duration 27406 ms by bot id=8893725272
+2026-06-27 01:05:47,816 INFO HTTP Request: GET https://api.telegram.org/file/bot8893725272:AAGaQ-19OJilmzirSUMCqDfsPCTclQQSHgE/photos/file_10.jpg "HTTP/1.1 200 OK"
+2026-06-27 01:05:47,827 INFO Image size for OCR: 48KB
+2026-06-27 01:05:51,575 INFO HTTP Request: POST https://ocr.api.cloud.yandex.net/ocr/v1/recognizeText "HTTP/1.1 200 OK"
+2026-06-27 01:05:51,577 INFO OCR result: "¿«— ‚ „. ¡Ó\nG'Drive\nGORIVE\n95\n95\n92\n33 55\n√¿«\n36.90\nP D"
+2026-06-27 01:05:54,827 INFO HTTP Request: POST https://llm.api.cloud.yandex.net/foundationModels/v1/completion "HTTP/1.1 200 OK"
+2026-06-27 01:05:55,125 INFO Update id=597883185 is handled. Duration 10077 ms by bot id=8893725272
+2026-06-27 01:06:36,789 INFO HTTP Request: GET https://api.telegram.org/file/bot8893725272:AAGaQ-19OJilmzirSUMCqDfsPCTclQQSHgE/photos/file_11.jpg "HTTP/1.1 200 OK"
+2026-06-27 01:06:38,038 INFO Image size for OCR: 226KB
+2026-06-27 01:06:54,771 INFO HTTP Request: POST https://ocr.api.cloud.yandex.net/ocr/v1/recognizeText "HTTP/1.1 200 OK"
+2026-06-27 01:06:54,781 INFO OCR result: "Gulag\n20 Ë˛Ì. ‚ 10:08\n73937 ËÁ 74095\n√¿«Œ–¿Ã»ÕŒ“‹\nG'Orive\n159.00\n129.00\n119.00\n109.00\nD\n12.00\n35.90\n¿-95 ÔÓ 119 Û·ÎÂÈ ÔÓ‰‡˛Ú Ì‡ ¿«—\n´√‡ÁÔÓÏÌÂÙÚËª ‚ ÕËÊÌÂÏ ÕÓ‚„ÓÓ‰Â.\nœÂÏË‡Î¸Ì˚È G-Drive 100 Ó·ÓÈ‰∏ÚÒˇ ‚ 159\nÛ·ÎÂÈ Á‡ ÎËÚ."
+2026-06-27 01:06:57,477 INFO HTTP Request: POST https://llm.api.cloud.yandex.net/foundationModels/v1/completion "HTTP/1.1 200 OK"
+2026-06-27 01:06:57,765 INFO Update id=597883186 is handled. Duration 24531 ms by bot id=8893725272
+2026-06-27 01:08:07,393 INFO HTTP Request: GET https://api.telegram.org/file/bot8893725272:AAGaQ-19OJilmzirSUMCqDfsPCTclQQSHgE/photos/file_12.jpg "HTTP/1.1 200 OK"
+2026-06-27 01:10:58,082 INFO Update id=597883187 is not handled. Duration 176625 ms by bot id=8893725272
+2026-06-27 01:10:58,091 ERROR Cause exception while process update id=597883187 by bot id=8893725272
+ReadTimeout: 
+Traceback (most recent call last):
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\site-packages\httpx\_transports\default.py", line 101, in map_httpcore_exceptions
+    yield
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\site-packages\httpx\_transports\default.py", line 271, in __aiter__
+    async for part in self._httpcore_stream:
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\site-packages\httpcore\_async\connection_pool.py", line 407, in __aiter__
+    raise exc from None
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\site-packages\httpcore\_async\connection_pool.py", line 403, in __aiter__
+    async for part in self._stream:
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\site-packages\httpcore\_async\http11.py", line 342, in __aiter__
+    raise exc
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\site-packages\httpcore\_async\http11.py", line 334, in __aiter__
+    async for chunk in self._connection._receive_response_body(**kwargs):
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\site-packages\httpcore\_async\http11.py", line 203, in _receive_response_body
+    event = await self._receive_event(timeout=timeout)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\site-packages\httpcore\_async\http11.py", line 217, in _receive_event
+    data = await self._network_stream.read(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\site-packages\httpcore\_backends\anyio.py", line 32, in read
+    with map_exceptions(exc_map):
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\contextlib.py", line 155, in __exit__
+    self.gen.throw(value)
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\site-packages\httpcore\_exceptions.py", line 14, in map_exceptions
+    raise to_exc(exc) from exc
+httpcore.ReadTimeout
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\site-packages\aiogram\dispatcher\dispatcher.py", line 320, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\site-packages\aiogram\dispatcher\dispatcher.py", line 164, in feed_update
+    response = await self.update.wrap_outer_middleware(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\site-packages\aiogram\dispatcher\middlewares\error.py", line 27, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\site-packages\aiogram\dispatcher\middlewares\user_context.py", line 58, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\site-packages\aiogram\fsm\middleware.py", line 43, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\site-packages\aiogram\dispatcher\event\telegram.py", line 126, in trigger
+    return await wrapped_inner(event, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\site-packages\aiogram\dispatcher\event\handler.py", line 71, in call
+    return await wrapped()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\site-packages\aiogram\dispatcher\dispatcher.py", line 283, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\site-packages\aiogram\dispatcher\router.py", line 161, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\site-packages\aiogram\dispatcher\router.py", line 153, in _wrapped
+    return await self._propagate_event(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\site-packages\aiogram\dispatcher\router.py", line 181, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\site-packages\aiogram\dispatcher\event\telegram.py", line 126, in trigger
+    return await wrapped_inner(event, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\site-packages\aiogram\dispatcher\event\handler.py", line 71, in call
+    return await wrapped()
+           ^^^^^^^^^^^^^^^
+  File "D:\denisProfile\Documents\20260626 Fuel-Monitor\spike\bot_spike.py", line 107, in handle_photo
+    image_bytes = await download_tg_file(file.file_path)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\denisProfile\Documents\20260626 Fuel-Monitor\spike\bot_spike.py", line 100, in download_tg_file
+    r = await client.get(url)
+        ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\site-packages\httpx\_client.py", line 1768, in get
+    return await self.request(
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\site-packages\httpx\_client.py", line 1540, in request
+    return await self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\site-packages\httpx\_client.py", line 1643, in send
+    raise exc
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\site-packages\httpx\_client.py", line 1637, in send
+    await response.aread()
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\site-packages\httpx\_models.py", line 979, in aread
+    self._content = b"".join([part async for part in self.aiter_bytes()])
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\site-packages\httpx\_models.py", line 997, in aiter_bytes
+    async for raw_bytes in self.aiter_raw():
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\site-packages\httpx\_models.py", line 1055, in aiter_raw
+    async for raw_stream_bytes in self.stream:
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\site-packages\httpx\_client.py", line 176, in __aiter__
+    async for chunk in self._stream:
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\site-packages\httpx\_transports\default.py", line 270, in __aiter__
+    with map_httpcore_exceptions():
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\contextlib.py", line 155, in __exit__
+    self.gen.throw(value)
+  File "C:\Users\denis\AppData\Local\Programs\Python\Python312\Lib\site-packages\httpx\_transports\default.py", line 118, in map_httpcore_exceptions
+    raise mapped_exc(message) from exc
+httpx.ReadTimeout
+2026-06-27 01:11:08,776 INFO HTTP Request: GET https://api.telegram.org/file/bot8893725272:AAGaQ-19OJilmzirSUMCqDfsPCTclQQSHgE/voice/file_13.oga "HTTP/1.1 200 OK"
+2026-06-27 01:11:22,388 INFO HTTP Request: POST https://stt.api.cloud.yandex.net/speech/v1/stt:recognize?folderId=b1ghhjuthdno426pvc72&lang=ru-RU&format=oggopus "HTTP/1.1 200 OK"
+2026-06-27 01:11:25,458 INFO HTTP Request: POST https://llm.api.cloud.yandex.net/foundationModels/v1/completion "HTTP/1.1 200 OK"
+2026-06-27 01:11:25,739 INFO Update id=597883188 is handled. Duration 20686 ms by bot id=8893725272

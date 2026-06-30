@@ -1,6 +1,6 @@
 import os
 from fastapi import APIRouter, Depends, Query, HTTPException, Header
-from sqlalchemy import select, update, delete, cast, func, literal_column
+from sqlalchemy import select, update, delete, cast, func
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from geoalchemy2 import Geography
@@ -56,15 +56,16 @@ async def nearby_stations(
         func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326), Geography
     )
     station_geo = cast(Station.location, Geography)
+    distance_expr = func.ST_Distance(station_geo, point_geo).label("distance_m")
     q = (
         select(
             Station,
-            func.ST_Distance(station_geo, point_geo).label("distance_m"),
+            distance_expr,
         )
         .options(selectinload(Station.fuel_states))
         .where(Station.location.isnot(None))
         .where(func.ST_DWithin(station_geo, point_geo, radius_km * 1000))
-        .order_by(literal_column("distance_m"))
+        .order_by(distance_expr)
         .limit(limit)
     )
     result = await db.execute(q)

@@ -124,7 +124,6 @@ async def test_nearby_stations_lat_validation():
 @pytest.mark.asyncio
 async def test_nearby_stations_no_results():
     from api.main import app
-    from api.routers.stations import router as stations_router
     from db.database import get_db
     from httpx import AsyncClient, ASGITransport
     from unittest.mock import AsyncMock, MagicMock
