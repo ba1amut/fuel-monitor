@@ -166,8 +166,10 @@ async def parse_text(text: str) -> ParsedReport:
 async def parse_photo(image_bytes: bytes) -> ParsedReport:
     """Parse a fuel price board photo: Yandex Vision OCR → DeepSeek text parse."""
     ocr_text = await _call_ocr(image_bytes)
+    logging.warning("OCR_TEXT: %r", ocr_text)
     raw = await _call_deepseek_text([
         {"role": "system", "content": OCR_PARSE_PROMPT},
         {"role": "user", "content": ocr_text},
     ])
+    logging.warning("DEEPSEEK_RAW: %r", raw)
     return _parse_response(raw)
