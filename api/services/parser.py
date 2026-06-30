@@ -113,7 +113,7 @@ def _parse_response(raw: str) -> ParsedReport:
         raw_fuels = data.get("fuels", [])
         fuels = [
             FuelItem(
-                grade=f.get("grade") or f.get("fuel_type") or f.get("name") or "?",
+                grade=f.get("grade") or f.get("fuel_type") or f.get("type") or f.get("name") or "?",
                 available=f.get("available", False),
                 price=f.get("price"),
             )
