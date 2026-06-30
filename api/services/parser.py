@@ -10,8 +10,11 @@ import httpx
 YANDEX_API_KEY = os.getenv("YANDEX_API_KEY")
 YANDEX_FOLDER_ID = os.getenv("YANDEX_FOLDER_ID")
 GPT_URL = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
-OCR_URL = "https://ocr.api.cloud.yandex.net/ocr/v1/recognizeText"
 CONFIDENCE_THRESHOLD = 0.5
+
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
+DEEPSEEK_BASE_URL = "https://api.deepseek.com"
+DEEPSEEK_VISION_MODEL = os.getenv("DEEPSEEK_VISION_MODEL", "deepseek-chat")
 
 SYSTEM_PROMPT = """Ты парсер отчётов об АЗС. Извлеки из сообщения пользователя данные и верни ТОЛЬКО валидный JSON без пояснений:
 {
@@ -23,16 +26,16 @@ SYSTEM_PROMPT = """Ты парсер отчётов об АЗС. Извлеки 
 }
 Если данных недостаточно — ставь низкий confidence."""
 
-OCR_SYSTEM_PROMPT = """Ты парсер текста с ценового табло АЗС, распознанного через OCR.
+VISION_SYSTEM_PROMPT = """Ты парсер ценовых табло АЗС. Посмотри на изображение и извлеки данные о топливе.
 Правила:
 1. Извлеки марки топлива (АИ-92, АИ-95, АИ-100, ДТ, ГАЗ и аналоги).
-2. Цена всегда указана в той же строке что и марка топлива. Число в той же строке — это цена за литр.
-3. Если у марки есть цена — available: true, price: число.
-4. Если марка упомянута, но цены в той же строке нет — available: false, price: null.
-5. Игнорируй маркетинговые названия: ЭКТО, PULSAR, ULTIMATE, G-Drive и подобные — это суббренды, не марки топлива.
-6. Не выдумывай данные которых нет в тексте.
-Ответь ТОЛЬКО валидным JSON без пояснений. Поля топлива: "grade" (не "fuel_type"), "available", "price".
-Пример: {"station_alias": "Октан", "brand": "независимая", "city": null, "fuels": [{"grade": "АИ-95", "available": true, "price": 79.5}], "confidence": 0.9}"""
+2. Если у марки есть цена — available: true, price: число (за литр).
+3. Если марка видна, но цены нет — available: false, price: null.
+4. Игнорируй маркетинговые суббренды: ЭКТО, PULSAR, ULTIMATE, G-Drive — это не марки топлива.
+5. Если видно название или бренд АЗС — укажи в station_alias/brand. Если нет — null.
+6. Не выдумывай данные которых нет на изображении.
+Ответь ТОЛЬКО валидным JSON без пояснений. Используй поле "grade" (не "fuel_type" и не "name").
+Пример: {"station_alias": "Октан", "brand": "независимая", "city": null, "fuels": [{"grade": "АИ-95", "available": true, "price": 79.5}, {"grade": "АИ-92", "available": false, "price": null}], "confidence": 0.9}"""
 
 
 @dataclass
@@ -67,36 +70,37 @@ async def _call_yandex_gpt(messages: list[dict]) -> str:
         return r.json()["result"]["alternatives"][0]["message"]["text"]
 
 
-async def _call_ocr(image_bytes: bytes) -> str:
-    """Call Yandex Vision OCR and return extracted text."""
+async def _call_deepseek_vision(image_bytes: bytes) -> str:
+    """Call DeepSeek Vision API with a base64-encoded image. Returns raw model text."""
     b64 = base64.b64encode(image_bytes).decode()
     async with httpx.AsyncClient(timeout=90) as client:
         r = await client.post(
-            OCR_URL,
+            f"{DEEPSEEK_BASE_URL}/chat/completions",
             headers={
-                "Authorization": f"Api-Key {YANDEX_API_KEY}",
-                "x-folder-id": YANDEX_FOLDER_ID or "",
+                "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+                "Content-Type": "application/json",
             },
             json={
-                "mimeType": "JPEG",
-                "languageCodes": ["ru", "en"],
-                "content": b64,
+                "model": DEEPSEEK_VISION_MODEL,
+                "temperature": 0.1,
+                "max_tokens": 500,
+                "messages": [
+                    {"role": "system", "content": VISION_SYSTEM_PROMPT},
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": "Распознай это ценовое табло АЗС."},
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"data:image/jpeg;base64,{b64}"},
+                            },
+                        ],
+                    },
+                ],
             },
         )
         r.raise_for_status()
-        data = r.json()
-        blocks = (
-            data.get("result", {})
-            .get("textAnnotation", {})
-            .get("blocks", [])
-        )
-        lines: list[str] = []
-        for block in blocks:
-            for line in block.get("lines", []):
-                text = line.get("text", "").strip()
-                if text:
-                    lines.append(text)
-        return "\n".join(lines)
+        return r.json()["choices"][0]["message"]["content"]
 
 
 def _parse_response(raw: str) -> ParsedReport:
@@ -140,13 +144,6 @@ async def parse_text(text: str) -> ParsedReport:
 
 
 async def parse_photo(image_bytes: bytes) -> ParsedReport:
-    """Parse a fuel price board photo using OCR + YandexGPT pipeline."""
-    # Step A: extract text via Yandex Vision OCR
-    ocr_text = await _call_ocr(image_bytes)
-
-    # Step B: parse the extracted text with a specialised OCR prompt
-    raw = await _call_yandex_gpt([
-        {"role": "system", "text": OCR_SYSTEM_PROMPT},
-        {"role": "user", "text": ocr_text},
-    ])
+    """Parse a fuel price board photo using DeepSeek Vision."""
+    raw = await _call_deepseek_vision(image_bytes)
     return _parse_response(raw)
