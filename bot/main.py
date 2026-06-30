@@ -3,6 +3,7 @@ import os
 import logging
 
 from aiogram import Bot, Dispatcher
+from aiogram.types import BotCommand
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from aiohttp import web
 
@@ -18,7 +19,6 @@ WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
 
 async def on_startup(bot: Bot):
     await bot.set_webhook(WEBHOOK_URL)
-    from aiogram.types import BotCommand
     await bot.set_my_commands([
         BotCommand(command="near", description="АЗС рядом со мной"),
         BotCommand(command="city", description="АЗС в городе — /city Ессентуки"),
