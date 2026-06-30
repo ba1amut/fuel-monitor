@@ -13,9 +13,6 @@ GPT_URL = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
 OCR_URL = "https://ocr.api.cloud.yandex.net/ocr/v1/recognizeText"
 CONFIDENCE_THRESHOLD = 0.5
 
-DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
-DEEPSEEK_BASE_URL = "https://api.deepseek.com"
-DEEPSEEK_VISION_MODEL = os.getenv("DEEPSEEK_VISION_MODEL", "deepseek-chat")
 
 SYSTEM_PROMPT = """Ты парсер отчётов об АЗС. Извлеки из сообщения пользователя данные и верни ТОЛЬКО валидный JSON без пояснений:
 {
@@ -103,25 +100,6 @@ async def _call_ocr(image_bytes: bytes) -> str:
         return "\n".join(lines)
 
 
-async def _call_deepseek_text(messages: list[dict]) -> str:
-    """Call DeepSeek chat completions (text-only) with OpenAI-compatible message format."""
-    async with httpx.AsyncClient(timeout=60) as client:
-        r = await client.post(
-            f"{DEEPSEEK_BASE_URL}/chat/completions",
-            headers={
-                "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": DEEPSEEK_VISION_MODEL,
-                "temperature": 0.1,
-                "max_tokens": 500,
-                "messages": messages,
-            },
-        )
-        r.raise_for_status()
-        return r.json()["choices"][0]["message"]["content"]
-
 
 def _parse_response(raw: str) -> ParsedReport:
     raw = raw.strip()
@@ -164,12 +142,10 @@ async def parse_text(text: str) -> ParsedReport:
 
 
 async def parse_photo(image_bytes: bytes) -> ParsedReport:
-    """Parse a fuel price board photo: Yandex Vision OCR → DeepSeek text parse."""
+    """Parse a fuel price board photo: Yandex Vision OCR → YandexGPT text parse."""
     ocr_text = await _call_ocr(image_bytes)
-    logging.warning("OCR_TEXT: %r", ocr_text)
-    raw = await _call_deepseek_text([
-        {"role": "system", "content": OCR_PARSE_PROMPT},
-        {"role": "user", "content": ocr_text},
+    raw = await _call_yandex_gpt([
+        {"role": "system", "text": OCR_PARSE_PROMPT},
+        {"role": "user", "text": ocr_text},
     ])
-    logging.warning("DEEPSEEK_RAW: %r", raw)
     return _parse_response(raw)

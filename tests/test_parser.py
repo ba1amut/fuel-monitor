@@ -38,22 +38,22 @@ async def test_parse_text_low_confidence():
 
 
 @pytest.mark.asyncio
-async def test_parse_photo_deepseek_success():
+async def test_parse_photo_ocr_then_yandex_gpt():
     ocr_text = "Октан\nАИ-95  79.5"
-    ds_response = (
+    gpt_response = (
         '{"station_alias": "Октан у озера", "brand": "независимая", "city": "Ессентуки", '
         '"fuels": [{"grade": "АИ-95", "available": true, "price": 79.5}], '
         '"confidence": 0.9}'
     )
     with (
         patch("api.services.parser._call_ocr", new_callable=AsyncMock) as mock_ocr,
-        patch("api.services.parser._call_deepseek_text", new_callable=AsyncMock) as mock_ds,
+        patch("api.services.parser._call_yandex_gpt", new_callable=AsyncMock) as mock_gpt,
     ):
         mock_ocr.return_value = ocr_text
-        mock_ds.return_value = ds_response
+        mock_gpt.return_value = gpt_response
         result = await parse_photo(b"fake_image_bytes")
         mock_ocr.assert_awaited_once_with(b"fake_image_bytes")
-        mock_ds.assert_awaited_once()
+        mock_gpt.assert_awaited_once()
     assert result.city == "Ессентуки"
     assert not result.parse_failed
     assert result.fuels[0].grade == "АИ-95"
@@ -61,13 +61,13 @@ async def test_parse_photo_deepseek_success():
 
 
 @pytest.mark.asyncio
-async def test_parse_photo_deepseek_low_confidence():
+async def test_parse_photo_low_confidence():
     with (
         patch("api.services.parser._call_ocr", new_callable=AsyncMock) as mock_ocr,
-        patch("api.services.parser._call_deepseek_text", new_callable=AsyncMock) as mock_ds,
+        patch("api.services.parser._call_yandex_gpt", new_callable=AsyncMock) as mock_gpt,
     ):
         mock_ocr.return_value = "нечитаемый текст"
-        mock_ds.return_value = (
+        mock_gpt.return_value = (
             '{"station_alias": null, "brand": null, "city": null, "fuels": [], "confidence": 0.2}'
         )
         result = await parse_photo(b"fake_image_bytes")
