@@ -1,12 +1,16 @@
+import logging
+import uuid
 from dataclasses import dataclass, field
-from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import datetime, timezone
+
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-from db.models import Report, Station, StationFuelState, User
-from api.services.parser import parse_text, parse_photo, FuelItem, ParsedReport
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from api.services.geocoder import reverse_geocode
+from api.services.parser import FuelItem, ParsedReport, parse_photo, parse_text
 from api.services.speechkit import transcribe_voice as _transcribe
 from api.services.station_matcher import find_or_create_station
-from datetime import datetime, timezone
-import uuid
+from db.models import Report, Station, StationFuelState, User
 
 
 @dataclass
@@ -28,7 +32,7 @@ async def process_report(
     user_lat: float | None = None,
     user_lon: float | None = None,
 ) -> ProcessResult:
-    await _upsert_user(session, telegram_user_id)
+    # --- Phase 1: HTTP only — no DB connection held ---
 
     source = "telegram_text"
     raw_text = text or ""
@@ -45,8 +49,21 @@ async def process_report(
         parsed = await parse_text(raw_text)
 
     location = None
+    city = parsed.city
     if user_lat is not None and user_lon is not None:
         location = f"SRID=4326;POINT({user_lon} {user_lat})"
+        if not city:
+            try:
+                city = await reverse_geocode(user_lat, user_lon)
+            except Exception:
+                logging.warning(
+                    "reverse_geocode failed for (%s, %s)", user_lat, user_lon,
+                    exc_info=True,
+                )
+
+    # --- Phase 2: single DB transaction ---
+
+    await _upsert_user(session, telegram_user_id)
 
     station = None
     if not parsed.parse_failed:
@@ -54,7 +71,7 @@ async def process_report(
             session,
             brand=parsed.brand,
             alias=parsed.station_alias,
-            city=parsed.city,
+            city=city,
             region=None,
             location=location,
         )
@@ -71,7 +88,7 @@ async def process_report(
         source=source,
     )
     session.add(report)
-    await session.flush()  # assign report.id without committing
+    await session.flush()
     await session.refresh(report)
 
     if station and not parsed.parse_failed:
@@ -104,7 +121,6 @@ async def _upsert_user(session: AsyncSession, telegram_user_id: int):
         },
     )
     await session.execute(stmt)
-    await session.commit()
 
 
 async def _upsert_fuel_states(session: AsyncSession, station_id, fuels: list[FuelItem], report_id):

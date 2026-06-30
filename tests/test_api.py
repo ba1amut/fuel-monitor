@@ -198,8 +198,8 @@ async def test_patch_location_geocodes_city_when_none():
 
 
 @pytest.mark.asyncio
-async def test_patch_location_skips_geocode_when_city_set():
-    """PATCH /location must NOT call geocoder when station already has a city."""
+async def test_patch_location_does_not_overwrite_existing_city():
+    """PATCH /location calls geocoder but must not overwrite an existing city."""
     mock_station = _make_station_mock(city="Москва")
     app.dependency_overrides[get_db] = _make_patch_db(mock_station)
 
@@ -211,8 +211,8 @@ async def test_patch_location_skips_geocode_when_city_set():
             )
 
     assert r.status_code == 200
-    mock_geo.assert_not_awaited()
-    assert mock_station.city == "Москва"
+    mock_geo.assert_awaited_once_with(55.75, 37.62)
+    assert mock_station.city == "Москва"  # geocoder result ignored when city already set
 
 
 # --- /api/summary ---

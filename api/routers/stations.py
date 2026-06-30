@@ -95,6 +95,15 @@ async def update_station_location(
     body: LocationUpdateIn,
     db: AsyncSession = Depends(get_db),
 ):
+    # Geocode outside DB transaction — avoids holding a connection during HTTP call
+    geocoded_city = None
+    try:
+        geocoded_city = await reverse_geocode(body.lat, body.lon)
+    except Exception:
+        logging.warning(
+            "reverse_geocode failed for (%s, %s)", body.lat, body.lon, exc_info=True
+        )
+
     result = await db.execute(
         select(Station).options(selectinload(Station.fuel_states)).where(Station.id == station_id)
     )
@@ -102,11 +111,8 @@ async def update_station_location(
     if station is None:
         raise HTTPException(status_code=404, detail="Station not found")
     station.location = from_shape(Point(body.lon, body.lat), srid=4326)
-    if station.city is None:
-        try:
-            station.city = await reverse_geocode(body.lat, body.lon)
-        except Exception:
-            logging.warning("reverse_geocode failed for station %s", station_id)
+    if station.city is None and geocoded_city is not None:
+        station.city = geocoded_city
     await db.commit()
     result = await db.execute(
         select(Station).options(selectinload(Station.fuel_states)).where(Station.id == station_id)

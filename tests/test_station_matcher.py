@@ -1,5 +1,5 @@
 ﻿import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from api.services.station_matcher import find_or_create_station
 from db.models import Station
 
@@ -15,7 +15,7 @@ async def test_find_existing_station_by_alias():
     mock_result = MagicMock()
     mock_result.scalars.return_value.all.return_value = [existing]
     mock_session.execute = AsyncMock(return_value=mock_result)
-    mock_session.commit = AsyncMock()
+    mock_session.flush = AsyncMock()
 
     result = await find_or_create_station(
         mock_session, brand="Лукойл", alias="Лукойл на ленинском",
@@ -32,7 +32,7 @@ async def test_create_new_station_when_no_match():
     # execute called twice: city-filtered, then cityless
     mock_session.execute = AsyncMock(return_value=empty_result)
     mock_session.add = MagicMock()
-    mock_session.commit = AsyncMock()
+    mock_session.flush = AsyncMock()
     mock_session.refresh = AsyncMock()
 
     result = await find_or_create_station(
@@ -55,7 +55,7 @@ async def test_find_cityless_station_and_backfill_city():
 
     mock_session = MagicMock()
     mock_session.execute = AsyncMock(side_effect=[empty_result, cityless_result])
-    mock_session.commit = AsyncMock()
+    mock_session.flush = AsyncMock()
 
     result = await find_or_create_station(
         mock_session, brand="Октан", alias="Октан маркет",
@@ -66,24 +66,20 @@ async def test_find_cityless_station_and_backfill_city():
 
 
 @pytest.mark.asyncio
-async def test_create_station_geocodes_city_from_gps():
-    """When location provided but city is None, city is resolved via reverse_geocode."""
+async def test_create_new_station_without_city():
+    """Station is created with city=None when no city provided — geocoding is caller's job."""
     mock_session = MagicMock()
     empty_result = MagicMock()
     empty_result.scalars.return_value.all.return_value = []
     mock_session.execute = AsyncMock(return_value=empty_result)
     mock_session.add = MagicMock()
-    mock_session.commit = AsyncMock()
+    mock_session.flush = AsyncMock()
     mock_session.refresh = AsyncMock()
 
-    with patch(
-        "api.services.station_matcher.reverse_geocode", new_callable=AsyncMock
-    ) as mock_geo:
-        mock_geo.return_value = "Ессентуки"
-        result = await find_or_create_station(
-            mock_session, brand="независимая", alias="АЗС у дороги",
-            city=None, region=None, location="SRID=4326;POINT(44.0413 43.8573)"
-        )
+    result = await find_or_create_station(
+        mock_session, brand="независимая", alias="АЗС у дороги",
+        city=None, region=None, location="SRID=4326;POINT(44.0413 43.8573)"
+    )
 
-    assert result.city == "Ессентуки"
-    mock_geo.assert_awaited_once_with(43.8573, 44.0413)
+    assert result.city is None
+    mock_session.add.assert_called_once()

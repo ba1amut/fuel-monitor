@@ -1,5 +1,3 @@
-import logging
-
 import httpx
 
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/reverse"
