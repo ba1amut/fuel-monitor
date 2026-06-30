@@ -2,6 +2,7 @@ import os
 import logging
 import httpx
 from aiogram import Router, Bot, F, types
+from aiogram.filters import Command
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
 
 router = Router()
@@ -10,6 +11,9 @@ WEB_URL = os.getenv("WEBHOOK_HOST", "https://fuel.weatherpath.ru")
 
 # user_id -> station_id — ожидание геолокации от кнопки "Поделиться"
 _pending_location: dict[int, str] = {}
+
+# user_id -> True — ожидание геолокации от /near команды
+_pending_query: dict[int, bool] = {}
 
 
 def _location_keyboard() -> ReplyKeyboardMarkup:
@@ -72,6 +76,63 @@ def _format_fuels_fallback(r_data: dict) -> str:
     station_name = r_data.get("station_name") or "АЗС"
     fuels_text = _format_fuels(r_data.get("fuels", []))
     return f"Принято! АЗС: {station_name}\n{fuels_text}\n\nСпасибо за помощь 🙏"
+
+
+def _format_nearby_stations(stations: list[dict]) -> str:
+    if not stations:
+        return "Станций в радиусе 50 км не найдено."
+    lines = ["<b>АЗС рядом с тобой:</b>"]
+    for s in stations:
+        name = (s.get("aliases") or [None])[0] or s.get("brand") or "АЗС"
+        dist = s.get("distance_km", 0)
+        city = s.get("city") or ""
+        city_str = f" · {city}" if city else ""
+        fuels = s.get("fuel_states") or []
+        avail = [f["grade"] for f in fuels if f.get("available")]
+        unavail = [f["grade"] for f in fuels if not f.get("available")]
+        parts = []
+        if avail:
+            parts.append("✅ " + ", ".join(avail))
+        if unavail:
+            parts.append("❌ " + ", ".join(unavail))
+        fuel_str = "  ".join(parts) if parts else "нет данных"
+        lines.append(f"📍 <b>{name}</b>{city_str} — {dist} км\n{fuel_str}")
+    return "\n\n".join(lines)
+
+
+async def _handle_nearby_query(message: types.Message, lat: float, lon: float):
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.get(
+                f"{API_URL}/api/stations/nearby",
+                params={"lat": lat, "lon": lon, "radius_km": 50, "limit": 10},
+            )
+        if not r.is_success:
+            logging.error("Nearby query failed: %s %s", r.status_code, r.text)
+            await message.answer(
+                "Ошибка при поиске станций.", reply_markup=ReplyKeyboardRemove()
+            )
+            return
+        await message.answer(
+            _format_nearby_stations(r.json()),
+            reply_markup=ReplyKeyboardRemove(),
+            parse_mode="HTML",
+        )
+    except httpx.HTTPError as exc:
+        logging.error("Nearby query network error: %s", exc)
+        await message.answer(
+            "Не удалось получить данные, попробуй позже.",
+            reply_markup=ReplyKeyboardRemove(),
+        )
+
+
+@router.message(Command("near"))
+async def handle_near_command(message: types.Message):
+    _pending_query[message.from_user.id] = True
+    await message.answer(
+        "Поделись геолокацией — покажу АЗС рядом с тобой.",
+        reply_markup=_location_keyboard(),
+    )
 
 
 async def _handle_report_response(message: types.Message, r_data: dict):
@@ -154,12 +215,20 @@ async def handle_voice_report(message: types.Message, bot: Bot):
 
 @router.message(F.location)
 async def handle_location(message: types.Message):
-    station_id = _pending_location.pop(message.from_user.id, None)
+    user_id = message.from_user.id
+    lat = message.location.latitude
+    lon = message.location.longitude
+
+    # Query mode: /near command is awaiting location
+    if _pending_query.pop(user_id, False):
+        await _handle_nearby_query(message, lat, lon)
+        return
+
+    # Report mode: station location confirmation after submitting a fuel report
+    station_id = _pending_location.pop(user_id, None)
     if not station_id:
         await message.answer("Спасибо!", reply_markup=ReplyKeyboardRemove())
         return
-    lat = message.location.latitude
-    lon = message.location.longitude
     try:
         async with httpx.AsyncClient(timeout=10) as client:
             r = await client.patch(
@@ -167,10 +236,18 @@ async def handle_location(message: types.Message):
                 json={"lat": lat, "lon": lon},
             )
         if r.is_success:
-            await message.answer("Местоположение АЗС сохранено.", reply_markup=ReplyKeyboardRemove())
+            await message.answer(
+                "Местоположение АЗС сохранено.", reply_markup=ReplyKeyboardRemove()
+            )
         else:
             logging.error("PATCH location failed: %s %s", r.status_code, r.text)
-            await message.answer("Не удалось сохранить, попробуй на карте.", reply_markup=ReplyKeyboardRemove())
+            await message.answer(
+                "Не удалось сохранить, попробуй на карте.",
+                reply_markup=ReplyKeyboardRemove(),
+            )
     except httpx.HTTPError as exc:
         logging.error("PATCH location network error: %s", exc)
-        await message.answer("Не удалось сохранить, попробуй на карте.", reply_markup=ReplyKeyboardRemove())
+        await message.answer(
+            "Не удалось сохранить, попробуй на карте.",
+            reply_markup=ReplyKeyboardRemove(),
+        )

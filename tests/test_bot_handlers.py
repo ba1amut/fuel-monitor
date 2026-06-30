@@ -62,3 +62,30 @@ def test_format_full_station_available_no_price():
     assert "✅ АИ-98" in result
     # No price string when price is None
     assert "руб" not in result
+
+
+def test_format_nearby_stations_with_results():
+    from bot.handlers.report import _format_nearby_stations
+    stations = [
+        {
+            "aliases": ["Октан"],
+            "brand": "независимая",
+            "city": "Ессентуки",
+            "distance_km": 1.2,
+            "fuel_states": [
+                {"grade": "АИ-95", "available": True, "price": 79.5},
+                {"grade": "АИ-92", "available": False, "price": None},
+            ],
+        }
+    ]
+    result = _format_nearby_stations(stations)
+    assert "Октан" in result
+    assert "1.2 км" in result
+    assert "✅ АИ-95" in result
+    assert "❌ АИ-92" in result
+
+
+def test_format_nearby_stations_empty():
+    from bot.handlers.report import _format_nearby_stations
+    result = _format_nearby_stations([])
+    assert "не найдено" in result.lower()

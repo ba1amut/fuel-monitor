@@ -18,6 +18,13 @@ WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
 
 async def on_startup(bot: Bot):
     await bot.set_webhook(WEBHOOK_URL)
+    from aiogram.types import BotCommand
+    await bot.set_my_commands([
+        BotCommand(command="near", description="АЗС рядом со мной"),
+        BotCommand(command="city", description="АЗС в городе — /city Ессентуки"),
+        BotCommand(command="map", description="Открыть карту"),
+        BotCommand(command="help", description="Как пользоваться ботом"),
+    ])
     logging.info(f"Webhook set to {WEBHOOK_URL}")
 
 
