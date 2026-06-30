@@ -64,7 +64,7 @@ async def nearby_stations(
         )
         .options(selectinload(Station.fuel_states))
         .where(Station.location.isnot(None))
-        .where(func.ST_DWithin(station_geo, point_geo, radius_km * 1000))
+        .where(func.ST_DWithin(station_geo, point_geo, radius_km * 1000))  # Geography → metres
         .order_by(distance_expr)
         .limit(limit)
     )
