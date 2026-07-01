@@ -184,14 +184,25 @@ async def handle_photo_report(message: types.Message, bot: Bot):
         await message.answer("Фото слишком большое. Пришли фото меньше 5 МБ.")
         return
     image_bytes = await _download_tg_file(bot, file.file_path)
-    async with httpx.AsyncClient(timeout=30) as client:
-        r = await client.post(f"{API_URL}/api/reports", data={
-            "telegram_user_id": message.from_user.id,
-        }, files={"photo": ("photo.jpg", image_bytes, "image/jpeg")})
+    try:
+        async with httpx.AsyncClient(timeout=120) as client:
+            r = await client.post(f"{API_URL}/api/reports", data={
+                "telegram_user_id": message.from_user.id,
+            }, files={"photo": ("photo.jpg", image_bytes, "image/jpeg")})
+    except httpx.TimeoutException:
+        await message.answer("Сервер долго не отвечал. Попробуй ещё раз или напиши текстом.")
+        return
     if not r.is_success:
         await message.answer("Ошибка сервера. Попробуй позже.")
         return
     r_data = r.json()
+    if r_data.get("parse_failed"):
+        await message.answer(
+            "Не удалось распознать данные с фото.\n\n"
+            "Убедись что на снимке чётко видно ценовое табло АЗС.\n"
+            "Или напиши текстом: «Лукойл АИ-95 79р есть»"
+        )
+        return
     await _handle_report_response(message, r_data)
 
 

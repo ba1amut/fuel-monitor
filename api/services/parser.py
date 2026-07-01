@@ -117,7 +117,11 @@ def _parse_response(raw: str) -> ParsedReport:
             )
             for f in raw_fuels
         ]
-        confidence = float(data.get("confidence", 0))
+        raw_conf = data.get("confidence")
+        if raw_conf is None:
+            confidence = 0.9 if data.get("fuels") else 0.0
+        else:
+            confidence = float(raw_conf)
         return ParsedReport(
             station_alias=data.get("station_alias"),
             brand=data.get("brand"),
@@ -144,6 +148,13 @@ async def parse_text(text: str) -> ParsedReport:
 async def parse_photo(image_bytes: bytes) -> ParsedReport:
     """Parse a fuel price board photo: Yandex Vision OCR → YandexGPT text parse."""
     ocr_text = await _call_ocr(image_bytes)
+    logging.info("OCR extracted text (%d chars): %r", len(ocr_text), ocr_text[:300])
+    if not ocr_text.strip():
+        logging.warning("OCR returned empty text — photo unreadable")
+        return ParsedReport(
+            station_alias=None, brand=None, city=None, fuels=[], confidence=0.0,
+            parse_failed=True,
+        )
     raw = await _call_yandex_gpt([
         {"role": "system", "text": OCR_PARSE_PROMPT},
         {"role": "user", "text": ocr_text},
